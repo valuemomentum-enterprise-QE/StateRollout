@@ -1,0 +1,3 @@
+.kpi-card{transition:box-shadow .2s}.kpi-card:hover{box-shadow:0 4px 24px -4px rgba(0,0,0,.15)}
+.state-legend span{font-size:.75rem}
+.bar-small{height:.75rem;border-radius:.25rem}
