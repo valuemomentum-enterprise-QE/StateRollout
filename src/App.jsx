@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Upload, FileSpreadsheet, TrendingUp, AlertCircle } from 'lucide-react';
+import { Upload, FileSpreadsheet, TrendingUp, AlertCircle, Car, Home, Umbrella, ChevronDown, ChevronRight, BarChart3 } from 'lucide-react';
 import './index.css';
 import './App.css';
 
@@ -12,6 +11,17 @@ const InsuranceAnalyticsPlatform = () => {
   const [selectedState, setSelectedState] = useState(null);
   const [kpiData, setKpiData] = useState(null);
   const [fileName, setFileName] = useState('');
+  
+  // New states for LOB navigation and timeline
+  const [selectedLOB, setSelectedLOB] = useState('overview'); // 'overview', 'auto', 'home', 'umbrella'
+  const [timelineData, setTimelineData] = useState(null);
+  
+  // Tree dropdown states
+  const [expandedYears, setExpandedYears] = useState({});
+  const [expandedQuarters, setExpandedQuarters] = useState({});
+  
+  // NEW: State to track which year's quarters are visible
+  const [selectedYear, setSelectedYear] = useState(null);
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -25,9 +35,11 @@ const InsuranceAnalyticsPlatform = () => {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        console.log('Loaded Excel data:', jsonData);
         const processedData = processExcelData(jsonData);
         setStateData(processedData.stateMap);
         setKpiData(processedData.kpis);
+        setTimelineData(processedData.timeline);
         setFileUploaded(true);
       } catch (err) {
         alert('Failed to read file. Ensure it is a valid Excel (.xlsx/.xls).');
@@ -38,26 +50,148 @@ const InsuranceAnalyticsPlatform = () => {
   };
 
   const stateAbbreviations = {
-    'Alabama': 'AL','Alaska': 'AK','Arizona': 'AZ','Arkansas': 'AR','California': 'CA','Colorado': 'CO','Connecticut': 'CT','Delaware': 'DE','Florida': 'FL','Georgia': 'GA','Hawaii': 'HI','Idaho': 'ID','Illinois': 'IL','Indiana': 'IN','Iowa': 'IA','Kansas': 'KS','Kentucky': 'KY','Louisiana': 'LA','Maine': 'ME','Maryland': 'MD','Massachusetts': 'MA','Michigan': 'MI','Minnesota': 'MN','Mississippi': 'MS','Missouri': 'MO','Montana': 'MT','Nebraska': 'NE','Nevada': 'NV','New Hampshire': 'NH','New Jersey': 'NJ','New Mexico': 'NM','New York': 'NY','North Carolina': 'NC','North Dakota': 'ND','Ohio': 'OH','Oklahoma': 'OK','Oregon': 'OR','Pennsylvania': 'PA','Rhode Island': 'RI','South Carolina': 'SC','South Dakota': 'SD','Tennessee': 'TN','Texas': 'TX','Utah': 'UT','Vermont': 'VT','Virginia': 'VA','Washington': 'WA','West Virginia': 'WV','Wisconsin': 'WI','Wyoming': 'WY'
+    'Alabama': 'AL','Alaska': 'AK','Arizona': 'AZ','Arkansas': 'AR','California': 'CA','Colorado': 'CO','Connecticut': 'CT','Delaware': 'DE','District of Columbia': 'DC','Florida': 'FL','Georgia': 'GA','Hawaii': 'HI','Idaho': 'ID','Illinois': 'IL','Indiana': 'IN','Iowa': 'IA','Kansas': 'KS','Kentucky': 'KY','Louisiana': 'LA','Maine': 'ME','Maryland': 'MD','Massachusetts': 'MA','Michigan': 'MI','Minnesota': 'MN','Mississippi': 'MS','Missouri': 'MO','Montana': 'MT','Nebraska': 'NE','Nevada': 'NV','New Hampshire': 'NH','New Jersey': 'NJ','New Mexico': 'NM','New York': 'NY','North Carolina': 'NC','North Dakota': 'ND','Ohio': 'OH','Oklahoma': 'OK','Oregon': 'OR','Pennsylvania': 'PA','Rhode Island': 'RI','South Carolina': 'SC','South Dakota': 'SD','Tennessee': 'TN','Texas': 'TX','Utah': 'UT','Vermont': 'VT','Virginia': 'VA','Washington': 'WA','West Virginia': 'WV','Wisconsin': 'WI','Wyoming': 'WY'
+  };
+
+  // Simplified USA map positions for all states
+  const statePositions = {
+    'AK': { x: 10, y: 450, width: 100, height: 70 },
+    'HI': { x: 250, y: 450, width: 80, height: 40 },
+    'WA': { x: 70, y: 20, width: 90, height: 70 },
+    'OR': { x: 70, y: 90, width: 90, height: 60 },
+    'CA': { x: 40, y: 150, width: 90, height: 150 },
+    'NV': { x: 130, y: 150, width: 70, height: 100 },
+    'ID': { x: 160, y: 50, width: 70, height: 100 },
+    'MT': { x: 230, y: 20, width: 120, height: 70 },
+    'WY': { x: 230, y: 90, width: 90, height: 70 },
+    'UT': { x: 200, y: 160, width: 70, height: 90 },
+    'CO': { x: 270, y: 160, width: 90, height: 80 },
+    'AZ': { x: 150, y: 250, width: 80, height: 90 },
+    'NM': { x: 230, y: 240, width: 80, height: 100 },
+    'ND': { x: 350, y: 20, width: 90, height: 60 },
+    'SD': { x: 350, y: 80, width: 90, height: 60 },
+    'NE': { x: 360, y: 140, width: 90, height: 60 },
+    'KS': { x: 360, y: 200, width: 90, height: 60 },
+    'OK': { x: 360, y: 260, width: 100, height: 60 },
+    'TX': { x: 310, y: 320, width: 130, height: 130 },
+    'MN': { x: 440, y: 50, width: 90, height: 90 },
+    'IA': { x: 450, y: 140, width: 80, height: 60 },
+    'MO': { x: 460, y: 200, width: 80, height: 70 },
+    'AR': { x: 480, y: 270, width: 70, height: 60 },
+    'LA': { x: 490, y: 330, width: 80, height: 70 },
+    'WI': { x: 530, y: 80, width: 70, height: 90 },
+    'IL': { x: 540, y: 170, width: 60, height: 100 },
+    'MI': { x: 600, y: 90, width: 90, height: 100 },
+    'IN': { x: 600, y: 190, width: 50, height: 80 },
+    'OH': { x: 650, y: 180, width: 70, height: 70 },
+    'KY': { x: 620, y: 250, width: 90, height: 50 },
+    'TN': { x: 600, y: 300, width: 100, height: 50 },
+    'MS': { x: 560, y: 350, width: 60, height: 80 },
+    'AL': { x: 620, y: 350, width: 60, height: 80 },
+    'WV': { x: 720, y: 220, width: 60, height: 70 },
+    'VA': { x: 730, y: 250, width: 90, height: 50 },
+    'NC': { x: 730, y: 300, width: 100, height: 50 },
+    'SC': { x: 730, y: 350, width: 70, height: 60 },
+    'GA': { x: 680, y: 380, width: 70, height: 80 },
+    'FL': { x: 750, y: 410, width: 80, height: 90 },
+    'PA': { x: 780, y: 170, width: 80, height: 60 },
+    'NY': { x: 820, y: 110, width: 80, height: 80 },
+    'VT': { x: 880, y: 90, width: 40, height: 50 },
+    'NH': { x: 900, y: 100, width: 40, height: 50 },
+    'ME': { x: 920, y: 50, width: 50, height: 90 },
+    'MA': { x: 900, y: 140, width: 50, height: 30 },
+    'RI': { x: 920, y: 160, width: 30, height: 20 },
+    'CT': { x: 890, y: 170, width: 40, height: 30 },
+    'NJ': { x: 860, y: 190, width: 40, height: 50 },
+    'DE': { x: 850, y: 220, width: 30, height: 40 },
+    'MD': { x: 810, y: 230, width: 60, height: 40 }
   };
 
   const processExcelData = (jsonData) => {
     const stateMap = {};
     let totalForms = 0, totalAuto = 0, totalHome = 0;
     const complexityCount = { High: 0, Medium: 0, Low: 0 };
-    const filingTypes = {}; const regulationTypes = {};
+    const filingTypes = {}; 
+    const regulationTypes = {};
+    
+    // Predefined Auto LOB Timeline based on exact requirements
+    const autoTimeline = {
+      '2025': {
+        'Q1': [],
+        'Q2': [],
+        'Q3': [],
+        'Q4': ['WI']
+      },
+      '2026': {
+        'Q1': [],
+        'Q2': [],
+        'Q3': [],
+        'Q4': ['IL', 'OH', 'AZ']
+      },
+      '2027': {
+        'Q1': ['UT', 'IN'],
+        'Q2': ['NE'],
+        'Q3': ['IA', 'OR', 'TX', 'VA', 'MN'],
+        'Q4': ['AL', 'OK', 'AR', 'MS', 'TN']
+      },
+      '2028': {
+        'Q1': ['KS', 'SC', 'MO', 'CO'],
+        'Q2': ['KY', 'MD'],
+        'Q3': [],
+        'Q4': ['WY', 'SD', 'ME', 'WV', 'FL']
+      },
+      '2029': {
+        'Q1': ['ID', 'ND', 'NM', 'GA', 'NY'],
+        'Q2': ['VT', 'NV', 'MT', 'RI'],
+        'Q3': ['NH', 'AK', 'CT', 'DE', 'DC', 'PA'],
+        'Q4': ['LA']
+      },
+      '2030': {
+        'Q1': ['MI', 'MA', 'NJ'],
+        'Q2': [],
+        'Q3': [],
+        'Q4': []
+      }
+    };
+    
+    const timeline = {
+      auto: {},
+      home: {},
+      umbrella: {}
+    };
+
+    const years = ['2025', '2026', '2027', '2028', '2029', '2030'];
+    const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+    
+    // Initialize timeline structure
+    years.forEach(year => {
+      timeline.auto[year] = {};
+      timeline.home[year] = {};
+      timeline.umbrella[year] = {};
+      quarters.forEach(q => {
+        timeline.auto[year][q] = [];
+        timeline.home[year][q] = [];
+        timeline.umbrella[year][q] = [];
+      });
+    });
+
     jsonData.forEach(row => {
       const abbr = stateAbbreviations[row.State];
       if (!abbr) return;
+      
       totalForms += row['Total Forms'] || 0;
       totalAuto += row['Auto Forms'] || 0;
       totalHome += row['Home/Dwelling'] || 0;
+      
       const complexity = row.Complexity || 'Medium';
       complexityCount[complexity] = (complexityCount[complexity]||0)+1;
+      
       const filingType = row['Overall Filing Type'] || 'Unknown';
       filingTypes[filingType] = (filingTypes[filingType]||0)+1;
+      
       const regulation = row['Rate Regulation'] || 'Unknown';
       regulationTypes[regulation] = (regulationTypes[regulation]||0)+1;
+      
       stateMap[abbr] = {
         name: row.State,
         totalForms: row['Total Forms'] || 0,
@@ -73,9 +207,61 @@ const InsuranceAnalyticsPlatform = () => {
         umUim: row['UM/UIM'] || 'N/A',
         noFault: row['No-Fault'] || 'N/A',
         complexity,
+        testingComplexity: row['Testing Complexity'] || 'Medium',
         keyRequirements: row['Key State Requirements'] || 'N/A'
       };
     });
+
+    // Populate Auto timeline with predefined data
+    years.forEach(year => {
+      quarters.forEach(quarter => {
+        const stateCodes = autoTimeline[year][quarter];
+        stateCodes.forEach(code => {
+          // Add state even if not in stateMap (with default values)
+          if (stateMap[code]) {
+            timeline.auto[year][quarter].push({
+              code: code,
+              name: stateMap[code].name,
+              complexity: stateMap[code].testingComplexity
+            });
+          } else {
+            // Add with defaults if state not found in Excel data
+            timeline.auto[year][quarter].push({
+              code: code,
+              name: code,
+              complexity: 'Medium'
+            });
+          }
+        });
+      });
+    });
+
+    // For Home and Umbrella, use the testing complexity logic
+    Object.entries(stateMap).forEach(([abbr, data]) => {
+      const testingComplexity = data.testingComplexity;
+      const homeQuarter = testingComplexity === 'Critical' ? 'Q3' : testingComplexity === 'High' ? 'Q3' : testingComplexity === 'Medium' ? 'Q2' : 'Q1';
+      const umbrellaQuarter = 'Q2';
+      
+      const yearIndex = Math.floor((abbr.charCodeAt(0) - 65) / 9) % 6;
+      const targetYear = years[yearIndex];
+      
+      if (data.homeForms > 0) {
+        timeline.home[targetYear][homeQuarter].push({
+          code: abbr,
+          name: data.name,
+          complexity: testingComplexity
+        });
+      }
+      
+      if (data.umbrella > 0) {
+        timeline.umbrella[targetYear][umbrellaQuarter].push({
+          code: abbr,
+          name: data.name,
+          complexity: testingComplexity
+        });
+      }
+    });
+
     const kpis = {
       totalForms,
       totalAuto,
@@ -86,38 +272,43 @@ const InsuranceAnalyticsPlatform = () => {
       filingTypes,
       regulationTypes
     };
-    return { stateMap, kpis };
+    
+    return { stateMap, kpis, timeline };
   };
 
   const getStateColor = (code) => {
     if (!stateData || !stateData[code]) return '#e5e7eb';
-    const f = stateData[code].totalForms;
-    if (f > 150) return '#1e40af';
-    if (f > 100) return '#3b82f6';
-    if (f > 50) return '#60a5fa';
-    if (f > 20) return '#93c5fd';
-    return '#dbeafe';
+    const testingComplexity = stateData[code].testingComplexity;
+    
+    // Colors matching the provided image
+    if (testingComplexity === 'Low') return '#7fb069';      // Green
+    if (testingComplexity === 'Medium') return '#b8985f';   // Brown/Tan
+    if (testingComplexity === 'High') return '#8b4513';     // Dark Brown
+    if (testingComplexity === 'Critical') return '#e74c3c'; // Red
+    
+    return '#b8985f'; // Default to Medium
   };
 
-  const generateInsights = (stateMap, kpis) => {
-    if (!stateMap || !kpis) return [];
-    const states = Object.values(stateMap);
-    if (!states.length) return [];
-    const top = [...states].sort((a,b)=>b.totalForms-a.totalForms).slice(0,5);
-    const complexityTotals = kpis.complexityCount || {};
-    const totalComplexSamples = Object.values(complexityTotals).reduce((a,b)=>a+b,0)||1;
-    const pct = v => ((v/totalComplexSamples)*100).toFixed(1);
-    const autoShare = kpis.totalForms ? ((kpis.totalAuto/kpis.totalForms)*100).toFixed(1) : '0.0';
-    const homeShare = kpis.totalForms ? ((kpis.totalHome/kpis.totalForms)*100).toFixed(1) : '0.0';
-    const topFilings = Object.entries(kpis.filingTypes||{}).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([t,c])=>`${t} (${c})`).join(', ');
-    return [
-      `Coverage: ${kpis.stateCount} states; total forms ${kpis.totalForms}.`,
-      `Form mix: Auto ${autoShare}% | Home ${homeShare}%.`,
-      `Complexity spread: High ${pct(complexityTotals.High||0)}%, Medium ${pct(complexityTotals.Medium||0)}%, Low ${pct(complexityTotals.Low||0)}%.`,
-      `Top volume states: ${top.map(s=>`${s.name} (${s.totalForms})`).join(', ')}.`,
-      `Avg forms per state: ${kpis.avgFormsPerState}.`,
-      `Leading filing types: ${topFilings}.`
-    ];
+  const getComplexityColor = (complexity) => {
+    if (complexity === 'Critical') return 'text-red-700 bg-red-100 border-red-300';
+    if (complexity === 'High') return 'text-orange-700 bg-orange-100 border-orange-300';
+    if (complexity === 'Medium') return 'text-yellow-700 bg-yellow-100 border-yellow-300';
+    return 'text-green-700 bg-green-100 border-green-300';
+  };
+
+  const toggleYear = (year) => {
+    setExpandedYears(prev => ({
+      ...prev,
+      [year]: !prev[year]
+    }));
+  };
+
+  const toggleQuarter = (year, quarter) => {
+    const key = `${year}-${quarter}`;
+    setExpandedQuarters(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
   };
 
   const LandingPage = () => (
@@ -127,167 +318,784 @@ const InsuranceAnalyticsPlatform = () => {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-500 rounded-full mb-6">
             <FileSpreadsheet className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-5xl font-bold text-white mb-4">Insurance Analytics Dashboard</h1>
-          <p className="text-xl text-blue-200 mb-2">Upload your Excel file to visualize jurisdiction filing data</p>
-          <p className="text-sm text-blue-300">Supports .xlsx and .xls formats</p>
+          <h1 className="text-5xl font-bold text-white mb-4">
+            State Insurance Analytics Platform
+          </h1>
+          <p className="text-xl text-blue-200 mb-2">
+            Upload your Excel file to visualize state filing jurisdiction analysis
+          </p>
+          <p className="text-sm text-blue-300">
+            Supports .xlsx and .xls formats
+          </p>
         </div>
+
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <div className="border-4 border-dashed border-blue-300 rounded-xl p-12 text-center hover:border-blue-500 transition-all duration-300">
-            <input type="file" accept=".xlsx,.xls" onChange={handleFileUpload} className="hidden" id="file-upload" />
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleFileUpload}
+              className="hidden"
+              id="file-upload"
+            />
             <label htmlFor="file-upload" className="cursor-pointer">
               <Upload className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-              <p className="text-xl font-semibold text-gray-700 mb-2">Click to upload or drag and drop</p>
-              <p className="text-sm text-gray-500">Excel files only (Max 10MB)</p>
+              <p className="text-xl font-semibold text-gray-700 mb-2">
+                Click to upload or drag and drop
+              </p>
+              <p className="text-sm text-gray-500">
+                Excel files only (Max 10MB)
+              </p>
             </label>
           </div>
+
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-blue-50 rounded-lg p-4 text-center">
+              <TrendingUp className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-gray-700">Interactive Map</p>
+              <p className="text-xs text-gray-600">Hover over states for details</p>
+            </div>
+            <div className="bg-purple-50 rounded-lg p-4 text-center">
+              <Car className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-gray-700">LOB Timeline</p>
+              <p className="text-xs text-gray-600">Track rollouts by quarter</p>
+            </div>
+            <div className="bg-indigo-50 rounded-lg p-4 text-center">
+              <AlertCircle className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-gray-700">Key Insights</p>
+              <p className="text-xs text-gray-600">Automated KPI analysis</p>
+            </div>
+          </div>
         </div>
+
         <div className="mt-8 text-center text-blue-200 text-sm">
-          <p>Expected columns include: State, Total Forms, Auto Forms, Home/Dwelling, Complexity, Overall Filing Type...</p>
+          <p>Expected columns: State, Total Forms, Auto Forms, Home/Dwelling, Complexity, etc.</p>
         </div>
       </div>
     </div>
   );
 
   const Dashboard = () => {
-    const topStates = Object.entries(stateData)
-      .sort((a,b)=>b[1].totalForms-a[1].totalForms)
-      .slice(0,10)
-      .map(([code,data])=>({ name: data.name, forms: data.totalForms }));
-    const insights = generateInsights(stateData, kpiData);
-
-    const complexityBarData = Object.entries(kpiData.complexityCount).map(([level,count])=>{
-      const total = Object.values(kpiData.complexityCount).reduce((a,b)=>a+b,0)||1;
-      return { level, count, pct: ((count/total)*100).toFixed(1), color: level==='High'?'bg-red-500':level==='Medium'?'bg-amber-500':'bg-green-500' };
-    });
-
     const StateDetailPanel = ({ code }) => {
-      if (!code || !stateData[code]) return null;
       const d = stateData[code];
-      const complexityColors = { High: 'bg-red-100 text-red-700 border-red-300', Medium: 'bg-amber-100 text-amber-700 border-amber-300', Low: 'bg-green-100 text-green-700 border-green-300' };
+      if (!d) return null;
+      
       return (
-        <div className="bg-white rounded-lg shadow-lg p-6 border-l-4 border-blue-500 mb-6" aria-label="Selected State Details">
-          <div className="flex justify-between items-start mb-4">
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="flex justify-between items-start mb-3">
             <h3 className="text-xl font-bold text-gray-800">{d.name}</h3>
-            <button onClick={()=>setSelectedState(null)} className="text-gray-400 hover:text-gray-600" aria-label="Clear selected state">✕</button>
+            {selectedState && (
+              <button onClick={() => setSelectedState(null)} className="text-gray-500 hover:text-gray-700 text-xl">✕</button>
+            )}
           </div>
-          <div className="flex flex-wrap gap-3 mb-4">
-            <span className={`px-3 py-1 text-sm font-semibold rounded-full border ${complexityColors[d.complexity]}`}>Complexity: {d.complexity}</span>
-            <span className="px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-700 border border-blue-300">Filing: {d.filingType}</span>
-            <span className="px-3 py-1 text-sm font-semibold rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">Rate Reg: {d.rateRegulation}</span>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+            <div><p className="text-sm text-gray-600">Total Forms</p><p className="text-2xl font-bold text-blue-600">{d.totalForms}</p></div>
+            <div><p className="text-sm text-gray-600">Auto Forms</p><p className="text-2xl font-bold text-purple-600">{d.autoForms}</p></div>
+            <div><p className="text-sm text-gray-600">Home Forms</p><p className="text-2xl font-bold text-pink-600">{d.homeForms}</p></div>
+            <div><p className="text-sm text-gray-600">Complexity</p><p className="text-lg font-bold text-indigo-600">{d.testingComplexity}</p></div>
+            <div><p className="text-sm text-gray-600">Filing Type</p><p className="text-sm font-bold text-gray-700">{d.filingType}</p></div>
+            <div><p className="text-sm text-gray-600">Rate Regulation</p><p className="text-sm font-bold text-gray-700">{d.rateRegulation}</p></div>
           </div>
-          <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-            <div><p className="text-gray-500">Total Forms</p><p className="text-lg font-bold text-blue-600">{d.totalForms}</p></div>
-            <div><p className="text-gray-500">Auto</p><p className="text-lg font-bold text-purple-600">{d.autoForms}</p></div>
-            <div><p className="text-gray-500">Home</p><p className="text-lg font-bold text-pink-600">{d.homeForms}</p></div>
-            <div><p className="text-gray-500">Umbrella</p><p className="text-lg font-bold text-indigo-600">{d.umbrella}</p></div>
+          <div className="pt-3 border-t border-blue-200">
+            <p className="text-sm text-gray-600 mb-1 font-semibold">Key Requirements</p>
+            <p className="text-sm text-gray-800">{d.keyRequirements}</p>
           </div>
-          <div className="text-xs grid grid-cols-3 gap-2 mb-4">
+          <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
             <div className="bg-gray-50 rounded p-2"><span className="text-gray-600">PIP:</span> <span className="font-semibold">{d.pipRequired}</span></div>
             <div className="bg-gray-50 rounded p-2"><span className="text-gray-600">UM/UIM:</span> <span className="font-semibold">{d.umUim}</span></div>
             <div className="bg-gray-50 rounded p-2"><span className="text-gray-600">No-Fault:</span> <span className="font-semibold">{d.noFault}</span></div>
-          </div>
-          <div className="pt-3 border-t">
-            <p className="text-sm text-gray-600 mb-1">Key Requirements</p>
-            <p className="text-sm text-gray-800">{d.keyRequirements}</p>
           </div>
         </div>
       );
     };
 
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800">Insurance Filing Dashboard</h1>
-                <p className="text-gray-600 mt-1">Data source: {fileName}</p>
+    const HorizontalTreeTimeline = () => {
+      if (!timelineData || !selectedLOB) return null;
+      
+      const lobData = timelineData[selectedLOB];
+      if (!lobData) return null;
+
+      const years = ['2025', '2026', '2027', '2028', '2029', '2030'];
+      const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+
+      // Handler to toggle year selection
+      const handleYearClick = (year) => {
+        if (selectedYear === year) {
+          setSelectedYear(null); // Deselect if already selected
+        } else {
+          setSelectedYear(year); // Select new year
+        }
+      };
+
+      return (
+        <div className="bg-white rounded-lg shadow-md p-3 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-gray-800 capitalize flex items-center gap-2">
+              <span>{selectedLOB} LOB Timeline</span>
+              <span className="text-xs text-gray-500 italic">Hover over or click a state to see details</span>
+            </h3>
+            {/* Complexity Legend */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-semibold text-gray-600">Complexity:</span>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded" style={{backgroundColor: '#7fb069'}}></div>
+                <span>Low</span>
               </div>
-              <button onClick={()=>{setFileUploaded(false);setStateData(null);setFileName('');}} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Upload New File</button>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded" style={{backgroundColor: '#b8985f'}}></div>
+                <span>Medium</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded" style={{backgroundColor: '#8b4513'}}></div>
+                <span>High</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded" style={{backgroundColor: '#e74c3c'}}></div>
+                <span>Critical</span>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500 kpi-card"><div className="text-gray-500 text-sm font-semibold mb-1">Total Forms</div><div className="text-3xl font-bold text-gray-800">{kpiData.totalForms}</div><div className="text-green-600 text-sm mt-1">Across {kpiData.stateCount} states</div></div>
-            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500 kpi-card"><div className="text-gray-500 text-sm font-semibold mb-1">Auto Forms</div><div className="text-3xl font-bold text-gray-800">{kpiData.totalAuto}</div><div className="text-gray-600 text-sm mt-1">{((kpiData.totalAuto/kpiData.totalForms)*100).toFixed(1)}% of total</div></div>
-            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-pink-500 kpi-card"><div className="text-gray-500 text-sm font-semibold mb-1">Home Forms</div><div className="text-3xl font-bold text-gray-800">{kpiData.totalHome}</div><div className="text-gray-600 text-sm mt-1">{((kpiData.totalHome/kpiData.totalForms)*100).toFixed(1)}% of total</div></div>
-            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500 kpi-card"><div className="text-gray-500 text-sm font-semibold mb-1">Avg per State</div><div className="text-3xl font-bold text-gray-800">{kpiData.avgFormsPerState}</div><div className="text-gray-600 text-sm mt-1">Forms filed</div></div>
+          {/* Horizontal Timeline with Quarters */}
+          <div className="relative pt-2 pb-4">
+            {/* Timeline Bar */}
+            <div className="absolute top-6 left-8 right-8 h-0.5 bg-blue-300"></div>
+            
+            {/* Years and Quarters */}
+            <div className="flex justify-between relative px-6">
+              {years.map((year, yearIndex) => {
+                const yearData = lobData[year];
+                const totalStatesInYear = quarters.reduce((sum, q) => 
+                  sum + (yearData[q]?.length || 0), 0
+                );
+
+                return (
+                  <div key={year} className="flex flex-col items-center flex-1 relative">
+                    {/* Year Label */}
+                    <div className="text-sm font-bold text-gray-800 mb-1">{year}</div>
+                    
+                    {/* Year Marker - CLICKABLE */}
+                    <button
+                      onClick={() => handleYearClick(year)}
+                      disabled={totalStatesInYear === 0}
+                      className={`w-3 h-3 rounded-full z-10 mb-1 shadow-sm transition-all ${
+                        totalStatesInYear === 0 
+                          ? 'bg-gray-300 cursor-not-allowed' 
+                          : selectedYear === year
+                            ? 'bg-yellow-500 ring-2 ring-yellow-300'
+                            : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+                      }`}
+                      title={totalStatesInYear === 0 ? 'No states' : 'Click to view quarters'}
+                    ></button>
+                    
+                    {/* State Count */}
+                    <div className="text-[10px] text-gray-500">
+                      {totalStatesInYear} {totalStatesInYear === 1 ? 'state' : 'states'}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Quarter Details Below - Shows when year is selected */}
+            {selectedYear && (
+              <div className="mt-6 border-t-2 border-gray-300 pt-4">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-bold text-gray-800 text-sm">{selectedYear} - Quarters Breakdown</h4>
+                    <button
+                      onClick={() => setSelectedYear(null)}
+                      className="text-gray-500 hover:text-gray-700 text-sm font-medium"
+                    >
+                      Close ✕
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-3">
+                    {quarters.map(quarter => {
+                      const states = lobData[selectedYear][quarter] || [];
+                      
+                      return (
+                        <div key={quarter} className={`border-2 rounded-lg p-2 ${
+                          states.length === 0 ? 'border-gray-300 bg-white' : 'border-gray-400 bg-white'
+                        }`}>
+                          <div className="font-bold text-gray-800 text-center mb-2 text-sm bg-gray-100 py-1 rounded">
+                            {quarter}
+                          </div>
+                          {states.length === 0 ? (
+                            <div className="text-center text-gray-400 text-xs py-2">No states</div>
+                          ) : (
+                            <div className="flex flex-wrap gap-1 justify-center">
+                              {states.map((state, idx) => {
+                                const bgColors = {
+                                  'Low': '#7fb069',
+                                  'Medium': '#b8985f',
+                                  'High': '#8b4513',
+                                  'Critical': '#e74c3c'
+                                };
+                                return (
+                                  <span
+                                    key={idx}
+                                    className="px-1.5 py-1 text-white font-bold rounded text-xs cursor-pointer hover:opacity-80"
+                                    style={{ backgroundColor: bgColors[state.complexity] || '#6b7280' }}
+                                    title={`${state.name} - ${state.complexity}`}
+                                  >
+                                    {state.code}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const DataVisualizationCharts = () => {
+      // Prepare data for charts
+      const statesArray = Object.entries(stateData).map(([code, data]) => ({
+        code,
+        ...data
+      }));
+
+      // Sort states by total forms for top 10
+      const top10States = [...statesArray]
+        .sort((a, b) => b.totalForms - a.totalForms)
+        .slice(0, 10);
+
+      // Testing Complexity distribution
+      const complexityData = statesArray.reduce((acc, state) => {
+        acc[state.testingComplexity] = (acc[state.testingComplexity] || 0) + 1;
+        return acc;
+      }, {});
+
+      // Filing Types distribution
+      const filingTypeData = statesArray.reduce((acc, state) => {
+        acc[state.filingType] = (acc[state.filingType] || 0) + 1;
+        return acc;
+      }, {});
+
+      // Rate Regulation distribution
+      const regulationData = statesArray.reduce((acc, state) => {
+        acc[state.rateRegulation] = (acc[state.rateRegulation] || 0) + 1;
+        return acc;
+      }, {});
+
+      // Product forms data
+      const productData = [
+        { name: 'Auto', value: kpiData.totalAuto, color: '#3b82f6' },
+        { name: 'Home', value: kpiData.totalHome, color: '#ec4899' },
+        { name: 'Umbrella', value: Object.values(stateData).reduce((sum, s) => sum + s.umbrella, 0), color: '#8b5cf6' }
+      ];
+
+      return (
+        <div className="space-y-4">
+          {/* Row 1: Product Forms + Testing Complexity + Filing Types */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Bar Chart: Forms by Product Type */}
+            <div className="bg-white rounded-lg shadow-lg p-4">
+              <h3 className="text-sm font-bold text-gray-800 mb-3">Forms by Product Type</h3>
+              <div className="h-48">
+                <div className="flex items-end justify-around h-full gap-2 pb-6">
+                  {productData.map((product) => {
+                    const maxValue = Math.max(...productData.map(p => p.value));
+                    const heightPercent = (product.value / maxValue) * 100;
+                    return (
+                      <div key={product.name} className="flex flex-col items-center flex-1">
+                        <div className="text-xs font-semibold mb-1">{product.value}</div>
+                        <div
+                          className="w-full rounded-t-lg transition-all duration-500 hover:opacity-80"
+                          style={{
+                            backgroundColor: product.color,
+                            height: `${heightPercent}%`,
+                            minHeight: '20px'
+                          }}
+                        ></div>
+                        <div className="text-xs font-medium mt-1">{product.name}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Stacked Bar: Testing Complexity Distribution */}
+            <div className="bg-white rounded-lg shadow-lg p-4">
+              <h3 className="text-sm font-bold text-gray-800 mb-3">Testing Complexity Distribution</h3>
+              <div className="space-y-2">
+                {Object.entries(complexityData).map(([level, count]) => {
+                  const colors = {
+                    'Low': '#7fb069',
+                    'Medium': '#b8985f',
+                    'High': '#8b4513',
+                    'Critical': '#e74c3c'
+                  };
+                  const percentage = (count / statesArray.length) * 100;
+                  return (
+                    <div key={level}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium">{level}</span>
+                        <span className="text-gray-600">{count} ({percentage.toFixed(0)}%)</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-5">
+                        <div
+                          className="h-5 rounded-full transition-all duration-500 flex items-center justify-center text-white text-xs font-bold"
+                          style={{
+                            width: `${percentage}%`,
+                            backgroundColor: colors[level],
+                            minWidth: count > 0 ? '25px' : '0'
+                          }}
+                        >
+                          {count}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Pie Chart: Filing Types */}
+            <div className="bg-white rounded-lg shadow-lg p-4">
+              <h3 className="text-sm font-bold text-gray-800 mb-3">Filing Type Distribution</h3>
+              <div className="space-y-1.5">
+                {Object.entries(filingTypeData).map(([type, count], index) => {
+                  const colors = ['#3b82f6', '#ec4899', '#8b5cf6', '#f59e0b', '#10b981'];
+                  const percentage = (count / statesArray.length) * 100;
+                  return (
+                    <div key={type} className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded flex-shrink-0"
+                        style={{ backgroundColor: colors[index % colors.length] }}
+                      ></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between text-xs">
+                          <span className="font-medium truncate">{type}</span>
+                          <span className="text-gray-600 ml-2">{count} ({percentage.toFixed(0)}%)</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Interactive State Map</h2>
-              <p className="text-sm text-gray-600 mb-4">Hover over states to see details. Click to pin information.</p>
-              <div className="relative">
-                <svg viewBox="0 0 960 600" className="w-full h-auto" aria-label="State forms choropleth">
-                  {Object.keys(stateData).map(code => {
-                    const positions = { CA:"M50,250 L150,250 L150,400 L50,400 Z", TX:"M280,350 L420,350 L420,480 L280,480 Z", FL:"M700,450 L800,450 L800,550 L700,550 Z", NY:"M800,150 L880,150 L880,210 L800,210 Z", PA:"M780,200 L860,200 L860,250 L780,250 Z", IL:"M520,220 L590,220 L590,300 L520,300 Z", OH:"M650,210 L720,210 L720,270 L650,270 Z", GA:"M680,370 L750,370 L750,450 L680,450 Z", NC:"M730,310 L820,310 L820,360 L730,360 Z", MI:"M610,140 L680,140 L680,220 L610,220 Z", NJ:"M850,190 L890,190 L890,230 L850,230 Z", VA:"M750,280 L830,280 L830,330 L750,330 Z", WA:"M80,50 L180,50 L180,120 L80,120 Z", AZ:"M160,320 L240,320 L240,420 L160,420 Z", MA:"M870,140 L920,140 L920,170 L870,170 Z", TN:"M600,310 L710,310 L710,360 L600,360 Z", IN:"M590,240 L650,240 L650,310 L590,310 Z", MO:"M490,260 L570,260 L570,330 L490,330 Z", MD:"M810,240 L870,240 L870,270 L810,270 Z", WI:"M540,140 L600,140 L600,220 L540,220 Z", CO:"M260,200 L360,200 L360,280 L260,280 Z", MN:"M480,100 L560,100 L560,190 L480,190 Z", SC:"M730,360 L800,360 L800,410 L730,410 Z", AL:"M620,360 L680,360 L680,440 L620,440 Z", LA:"M510,400 L590,400 L590,480 L510,480 Z", KY:"M640,280 L720,280 L720,330 L640,330 Z", OR:"M70,120 L170,120 L170,200 L70,200 Z", OK:"M390,320 L490,320 L490,380 L390,380 Z", CT:"M880,170 L920,170 L920,195 L880,195 Z", UT:"M200,200 L270,200 L270,300 L200,300 Z", IA:"M480,190 L560,190 L560,250 L480,250 Z", NV:"M120,180 L190,180 L190,300 L120,300 Z", AR:"M530,330 L600,330 L600,400 L530,400 Z", MS:"M570,360 L620,360 L620,450 L570,450 Z", KS:"M390,250 L480,250 L480,320 L390,320 Z", NM:"M240,300 L330,300 L330,420 L240,420 Z", NE:"M380,200 L480,200 L480,260 L380,260 Z", ID:"M170,80 L240,80 L240,200 L170,200 Z", WV:"M730,250 L790,250 L790,300 L730,300 Z", HI:"M220,520 L280,520 L280,560 L220,560 Z", NH:"M890,120 L925,120 L925,160 L890,160 Z", ME:"M900,80 L940,80 L940,140 L900,140 Z", RI:"M910,180 L935,180 L935,200 L910,200 Z", MT:"M240,60 L380,60 L380,140 L240,140 Z", DE:"M860,250 L885,250 L885,280 L860,280 Z", SD:"M380,140 L480,140 L480,200 L380,200 Z", ND:"M380,60 L480,60 L480,130 L380,130 Z", AK:"M30,500 L120,500 L120,570 L30,570 Z", VT:"M875,110 L905,110 L905,150 L875,150 Z", WY:"M260,140 L360,140 L360,210 L260,210 Z" };
+          {/* Row 2: Top 10 States + Histogram */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Line Chart: Top 10 States by Total Forms */}
+            <div className="bg-white rounded-lg shadow-lg p-4">
+              <h3 className="text-sm font-bold text-gray-800 mb-3">Top 10 States by Total Forms</h3>
+              <div className="h-52 relative">
+                <svg viewBox="0 0 800 200" className="w-full h-full">
+                  {/* Grid lines */}
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <line
+                      key={i}
+                      x1="50"
+                      y1={30 + i * 35}
+                      x2="750"
+                      y2={30 + i * 35}
+                      stroke="#e5e7eb"
+                      strokeWidth="1"
+                    />
+                  ))}
+                  
+                  {/* Line chart */}
+                  {top10States.map((state, index) => {
+                    if (index === top10States.length - 1) return null;
+                    const x1 = 100 + index * 70;
+                    const x2 = 100 + (index + 1) * 70;
+                    const maxForms = top10States[0].totalForms;
+                    const y1 = 170 - (state.totalForms / maxForms) * 120;
+                    const y2 = 170 - (top10States[index + 1].totalForms / maxForms) * 120;
+                    
                     return (
-                      <path key={code} d={positions[code]||'M0,0'} fill={hoveredState===code?'#fbbf24':getStateColor(code)} stroke="#fff" strokeWidth="2" className="cursor-pointer transition-all duration-200 hover:opacity-80" onMouseEnter={()=>setHoveredState(code)} onMouseLeave={()=>setHoveredState(null)} onClick={()=>setSelectedState(code)} />
+                      <g key={state.code}>
+                        <line
+                          x1={x1}
+                          y1={y1}
+                          x2={x2}
+                          y2={y2}
+                          stroke="#3b82f6"
+                          strokeWidth="2"
+                        />
+                        <circle cx={x1} cy={y1} r="4" fill="#3b82f6" />
+                      </g>
+                    );
+                  })}
+                  
+                  {/* Last point */}
+                  {top10States.length > 0 && (
+                    <circle
+                      cx={100 + (top10States.length - 1) * 70}
+                      cy={170 - (top10States[top10States.length - 1].totalForms / top10States[0].totalForms) * 120}
+                      r="4"
+                      fill="#3b82f6"
+                    />
+                  )}
+                  
+                  {/* Labels */}
+                  {top10States.map((state, index) => {
+                    const x = 100 + index * 70;
+                    const maxForms = top10States[0].totalForms;
+                    const y = 170 - (state.totalForms / maxForms) * 120;
+                    return (
+                      <g key={state.code}>
+                        <text x={x} y="190" textAnchor="middle" className="text-xs font-medium">{state.code}</text>
+                        <text x={x} y={y - 8} textAnchor="middle" className="text-xs font-bold" fill="#3b82f6">{state.totalForms}</text>
+                      </g>
                     );
                   })}
                 </svg>
-                <div className="mt-4 flex items-center justify-center gap-4 text-xs flex-wrap state-legend">
-                  {[
-                    ['bg-blue-900','150+ forms'],
-                    ['bg-blue-500','100-150'],
-                    ['bg-blue-300','50-100'],
-                    ['bg-blue-200','20-50'],
-                    ['bg-blue-100','<20']
-                  ].map(([c,l])=> <div key={l} className="flex items-center gap-2"><div className={`w-4 h-4 ${c}`}></div><span>{l}</span></div>)}
-                </div>
               </div>
             </div>
-            <div className="space-y-6">
-              {(hoveredState||selectedState) && stateData[hoveredState||selectedState] && <StateDetailPanel code={hoveredState||selectedState} />}
-              {topStates.length>0 && (
-                <div className="bg-white rounded-lg shadow-lg p-6" aria-label="Top states bar chart">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4">Top 10 States by Total Forms</h3>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={topStates}>
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                      <YAxis tick={{ fontSize: 11 }} />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="forms" fill="#3b82f6" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-              <div className="bg-white rounded-lg shadow-lg p-6" aria-label="Complexity distribution summary">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">Complexity Distribution</h3>
-                <div className="space-y-3">
-                  {complexityBarData.map(item=> (
-                    <div key={item.level}>
-                      <div className="flex justify-between text-xs mb-1"><span className="font-semibold">{item.level}</span><span>{item.count} ({item.pct}%)</span></div>
-                      <div className="h-3 w-full bg-gray-200 rounded overflow-hidden"><div className={`h-3 ${item.color}`} style={{width: `${item.pct}%`}}></div></div>
+
+            {/* Histogram: Distribution of Total Forms */}
+            <div className="bg-white rounded-lg shadow-lg p-4">
+              <h3 className="text-sm font-bold text-gray-800 mb-3">Total Forms Distribution</h3>
+              <div className="h-52">
+                {(() => {
+                  const bins = [
+                    { range: '0-100', min: 0, max: 100, color: '#dbeafe' },
+                    { range: '100-150', min: 100, max: 150, color: '#93c5fd' },
+                    { range: '150-200', min: 150, max: 200, color: '#60a5fa' },
+                    { range: '200-300', min: 200, max: 300, color: '#3b82f6' },
+                    { range: '300+', min: 300, max: Infinity, color: '#1e40af' }
+                  ];
+                  
+                  const histogram = bins.map(bin => ({
+                    ...bin,
+                    count: statesArray.filter(s => s.totalForms >= bin.min && s.totalForms < bin.max).length
+                  }));
+                  
+                  const maxCount = Math.max(...histogram.map(h => h.count));
+                  
+                  return (
+                    <div className="flex items-end justify-around h-full gap-2 pb-6">
+                      {histogram.map((bin) => {
+                        const heightPercent = maxCount > 0 ? (bin.count / maxCount) * 100 : 0;
+                        return (
+                          <div key={bin.range} className="flex flex-col items-center flex-1">
+                            <div className="text-xs font-semibold mb-1">{bin.count}</div>
+                            <div
+                              className="w-full rounded-t-lg transition-all duration-500 hover:opacity-80"
+                              style={{
+                                backgroundColor: bin.color,
+                                height: `${heightPercent}%`,
+                                minHeight: bin.count > 0 ? '15px' : '5px'
+                              }}
+                            ></div>
+                            <div className="text-xs font-medium mt-1 text-center">{bin.range}</div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
-              </div>
-              <div className="bg-white rounded-lg shadow-lg p-6" aria-label="Filing types count summary">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">Filing Types</h3>
-                <div className="space-y-2">
-                  {Object.entries(kpiData.filingTypes).map(([type,count])=> (
-                    <div key={type} className="flex justify-between items-center p-2 bg-blue-50 rounded"><span className="text-sm font-medium text-gray-700">{type}</span><span className="text-sm font-bold text-blue-600">{count} states</span></div>
-                  ))}
-                </div>
-              </div>
-              <div className="bg-white rounded-lg shadow-lg p-6" aria-label="Automated data insights">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">Automated Insights</h3>
-                <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
-                  {insights.map((line,i)=> <li key={i}>{line}</li>)}
-                </ul>
+                  );
+                })()}
               </div>
             </div>
           </div>
+
+          {/* Row 3: Bubble Chart (Full Width) */}
+          <div className="bg-white rounded-lg shadow-lg p-4">
+            <h3 className="text-sm font-bold text-gray-800 mb-3">Auto Forms vs Home Forms (Bubble Size = Total Forms)</h3>
+            <div className="h-64 relative bg-gray-50 rounded-lg p-2">
+              <svg viewBox="0 0 600 250" className="w-full h-full">
+                {/* Axes */}
+                <line x1="40" y1="220" x2="560" y2="220" stroke="#374151" strokeWidth="2" />
+                <line x1="40" y1="30" x2="40" y2="220" stroke="#374151" strokeWidth="2" />
+                
+                {/* Axis labels */}
+                <text x="300" y="245" textAnchor="middle" className="text-xs font-semibold">Auto Forms</text>
+                <text x="15" y="125" textAnchor="middle" className="text-xs font-semibold" transform="rotate(-90 15 125)">Home Forms</text>
+                
+                {/* Bubbles */}
+                {statesArray.slice(0, 30).map((state) => {
+                  const maxAuto = Math.max(...statesArray.map(s => s.autoForms));
+                  const maxHome = Math.max(...statesArray.map(s => s.homeForms));
+                  const maxTotal = Math.max(...statesArray.map(s => s.totalForms));
+                  
+                  const x = 40 + (state.autoForms / maxAuto) * 520;
+                  const y = 220 - (state.homeForms / maxHome) * 190;
+                  const radius = 4 + (state.totalForms / maxTotal) * 15;
+                  
+                  const complexityColors = {
+                    'Low': '#7fb069',
+                    'Medium': '#b8985f',
+                    'High': '#8b4513',
+                    'Critical': '#e74c3c'
+                  };
+                  
+                  return (
+                    <g key={state.code}>
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r={radius}
+                        fill={complexityColors[state.testingComplexity]}
+                        opacity="0.6"
+                        className="hover:opacity-100 transition-opacity"
+                      />
+                      <text
+                        x={x}
+                        y={y + 3}
+                        textAnchor="middle"
+                        className="text-xs font-bold pointer-events-none"
+                        fill="#fff"
+                      >
+                        {state.code}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+          </div>
+
+          {/* Row 4: Rate Regulation Summary */}
+          <div className="bg-white rounded-lg shadow-lg p-4">
+            <h3 className="text-sm font-bold text-gray-800 mb-3">Rate Regulation Summary</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {Object.entries(regulationData).map(([type, count]) => (
+                <div key={type} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 text-center">
+                  <div className="text-xl font-bold text-blue-600">{count}</div>
+                  <div className="text-xs font-medium text-gray-700 mt-1 truncate" title={type}>{type}</div>
+                  <div className="text-xs text-gray-500">{((count / statesArray.length) * 100).toFixed(0)}%</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const OverviewContent = () => (
+      <>
+        {/* KPI Cards - Only show in Overview */}
+        {selectedLOB === 'overview' && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+              <div className="text-gray-500 text-sm font-semibold mb-1">Total Forms</div>
+              <div className="text-3xl font-bold text-gray-800">{kpiData.totalForms}</div>
+              <div className="text-green-600 text-sm mt-1">Across {kpiData.stateCount} states</div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+              <div className="text-gray-500 text-sm font-semibold mb-1">Auto Forms</div>
+              <div className="text-3xl font-bold text-gray-800">{kpiData.totalAuto}</div>
+              <div className="text-gray-600 text-sm mt-1">{((kpiData.totalAuto/kpiData.totalForms)*100).toFixed(1)}% of total</div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-pink-500">
+              <div className="text-gray-500 text-sm font-semibold mb-1">Home Forms</div>
+              <div className="text-3xl font-bold text-gray-800">{kpiData.totalHome}</div>
+              <div className="text-gray-600 text-sm mt-1">{((kpiData.totalHome/kpiData.totalForms)*100).toFixed(1)}% of total</div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500">
+              <div className="text-gray-500 text-sm font-semibold mb-1">Avg per State</div>
+              <div className="text-3xl font-bold text-gray-800">{kpiData.avgFormsPerState}</div>
+              <div className="text-gray-600 text-sm mt-1">Forms filed</div>
+            </div>
+          </div>
+        )}
+
+        {/* Conditional Content based on selectedLOB */}
+        {selectedLOB === 'overview' ? (
+          <DataVisualizationCharts />
+        ) : (
+          /* Map view for Auto, Home, Umbrella */
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Map Section - 2/3 width */}
+            <div className="lg:col-span-2 bg-white rounded-lg shadow-lg p-6">
+              <div className="relative bg-gray-50 rounded-lg p-4">
+                <svg viewBox="0 0 1000 550" className="w-full h-auto" style={{ maxHeight: '400px' }}>
+                  {Object.keys(stateData).map(stateCode => {
+                    const pos = statePositions[stateCode];
+                    if (!pos) return null;
+                    
+                    return (
+                      <g key={stateCode}>
+                        <rect
+                          x={pos.x}
+                          y={pos.y}
+                          width={pos.width}
+                          height={pos.height}
+                          fill={hoveredState === stateCode ? '#fbbf24' : getStateColor(stateCode)}
+                          stroke="#fff"
+                          strokeWidth="2"
+                          rx="4"
+                          className="cursor-pointer transition-all duration-200 hover:opacity-80"
+                          onMouseEnter={() => setHoveredState(stateCode)}
+                          onMouseLeave={() => setHoveredState(null)}
+                          onClick={() => setSelectedState(stateCode)}
+                        />
+                        <text
+                          x={pos.x + pos.width / 2}
+                          y={pos.y + pos.height / 2}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          className="pointer-events-none text-xs font-bold"
+                          fill={['High', 'Critical'].includes(stateData[stateCode].testingComplexity) ? '#fff' : '#1f2937'}
+                        >
+                          {stateCode}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+                
+                {/* Legend */}
+                <div className="mt-4 flex items-center justify-center gap-4 text-sm flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{backgroundColor: '#7fb069'}}></div>
+                    <span>Low</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{backgroundColor: '#b8985f'}}></div>
+                    <span>Medium</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{backgroundColor: '#8b4513'}}></div>
+                    <span>High</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{backgroundColor: '#e74c3c'}}></div>
+                    <span>Critical</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Sidebar - State Details */}
+            <div className="space-y-6">
+              {(hoveredState || selectedState) && stateData[hoveredState || selectedState] ? (
+                <StateDetailPanel code={hoveredState || selectedState} />
+              ) : (
+                <div className="bg-white rounded-lg shadow-lg p-6">
+                  <p className="text-gray-500 text-center italic">Hover over or click a state to see details</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </>
+    );
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex">
+        {/* Left Navigation Pane */}
+        <div className="w-48 bg-gray-900 text-white p-4 flex flex-col">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold mb-1">Dashboard</h2>
+            <p className="text-xs text-gray-400 truncate" title={fileName}>{fileName}</p>
+          </div>
+
+          <nav className="flex-1">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">Navigation</h3>
+            
+            <button
+              onClick={() => {
+                setSelectedLOB('overview');
+                setExpandedYears({});
+                setExpandedQuarters({});
+                setSelectedYear(null);
+              }}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 transition-colors ${
+                selectedLOB === 'overview' ? 'bg-blue-600' : 'hover:bg-gray-800'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span className="font-medium text-sm">Overview</span>
+            </button>
+
+            <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2 mt-4">Lines of Business</h3>
+            
+            <button
+              onClick={() => {
+                setSelectedLOB('auto');
+                setExpandedYears({});
+                setExpandedQuarters({});
+                setSelectedYear(null);
+              }}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 transition-colors ${
+                selectedLOB === 'auto' ? 'bg-blue-600' : 'hover:bg-gray-800'
+              }`}
+            >
+              <Car className="w-4 h-4" />
+              <span className="font-medium text-sm">Auto</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedLOB('home');
+                setExpandedYears({});
+                setExpandedQuarters({});
+                setSelectedYear(null);
+              }}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 transition-colors ${
+                selectedLOB === 'home' ? 'bg-blue-600' : 'hover:bg-gray-800'
+              }`}
+            >
+              <Home className="w-4 h-4" />
+              <span className="font-medium text-sm">Home</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedLOB('umbrella');
+                setExpandedYears({});
+                setExpandedQuarters({});
+                setSelectedYear(null);
+              }}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 transition-colors ${
+                selectedLOB === 'umbrella' ? 'bg-blue-600' : 'hover:bg-gray-800'
+              }`}
+            >
+              <Umbrella className="w-4 h-4" />
+              <span className="font-medium text-sm">Umbrella</span>
+            </button>
+          </nav>
+
+          <button
+            onClick={() => {
+              setFileUploaded(false);
+              setStateData(null);
+              setFileName('');
+              setSelectedLOB(null);
+              setSelectedYear(null);
+            }}
+            className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-medium text-sm transition-colors"
+          >
+            Upload New
+          </button>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 p-6 overflow-y-auto">
+          {/* Horizontal Tree Timeline at Top - only for LOB views */}
+          {selectedLOB && selectedLOB !== 'overview' && <HorizontalTreeTimeline />}
+          
+          {/* Overview Content Below */}
+          <OverviewContent />
         </div>
       </div>
     );
   };
 
-  useEffect(()=>{
-    if (fileUploaded) { document.body.classList.add('dashboard-mode'); } else { document.body.classList.remove('dashboard-mode'); }
+  useEffect(() => {
+    if (fileUploaded) {
+      document.body.classList.add('dashboard-mode');
+    } else {
+      document.body.classList.remove('dashboard-mode');
+    }
   }, [fileUploaded]);
 
   return fileUploaded ? <Dashboard /> : <LandingPage />;
