@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { Upload, FileSpreadsheet, TrendingUp, AlertCircle, Car, Home, Umbrella, ChevronDown, ChevronRight, BarChart3 } from 'lucide-react';
 import './index.css';
 import './App.css';
+import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps';
+import { geoCentroid } from 'd3-geo';
 
 const InsuranceAnalyticsPlatform = () => {
   const [fileUploaded, setFileUploaded] = useState(false);
@@ -22,6 +24,38 @@ const InsuranceAnalyticsPlatform = () => {
   
   // NEW: State to track which year's quarters are visible
   const [selectedYear, setSelectedYear] = useState(null);
+
+  // Cache US states topology to avoid refetches and remount flicker
+  const US_TOPO_URL = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
+  const [usTopo, setUsTopo] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch(US_TOPO_URL)
+      .then((res) => res.json())
+      .then((topology) => { if (mounted) setUsTopo(topology); })
+      .catch((err) => console.error('Failed to load US topology', err));
+    return () => { mounted = false; };
+  }, []);
+
+  // Throttle hover updates to one per animation frame to reduce flicker
+  const hoverRaf = useRef(0);
+  const hoveredRef = useRef(null);
+  useEffect(() => { hoveredRef.current = hoveredState; }, [hoveredState]);
+  // Defer hover leave clearing; cancel if a new enter occurs
+  const leaveTimeoutRef = useRef(0);
+  const cancelLeave = useCallback(() => {
+    if (leaveTimeoutRef.current) {
+      clearTimeout(leaveTimeoutRef.current);
+      leaveTimeoutRef.current = 0;
+    }
+  }, []);
+  const setHoverThrottled = useCallback((codeOrNull) => {
+    // Skip redundant updates
+    if (hoveredRef.current === codeOrNull) return;
+    if (hoverRaf.current) cancelAnimationFrame(hoverRaf.current);
+    hoverRaf.current = requestAnimationFrame(() => setHoveredState(codeOrNull));
+  }, [setHoveredState]);
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -248,6 +282,7 @@ const InsuranceAnalyticsPlatform = () => {
       
       stateMap[abbr] = {
         name: row.State,
+        stateRanking: row['State Ranking'] || 0,
         totalForms: row['Total Forms'] || 0,
         autoForms: row['Auto Forms'] || 0,
         homeForms: row['Home/Dwelling'] || 0,
@@ -334,7 +369,7 @@ const InsuranceAnalyticsPlatform = () => {
     return { stateMap, kpis, timeline };
   };
 
-  const getStateColor = (code) => {
+  const getStateColor = useCallback((code) => {
     if (!stateData || !stateData[code]) return '#e5e7eb';
     const testingComplexity = stateData[code].testingComplexity;
     
@@ -345,7 +380,7 @@ const InsuranceAnalyticsPlatform = () => {
     if (testingComplexity === 'Critical') return '#e74c3c'; // Red
     
     return '#b8985f'; // Default to Medium
-  };
+  }, [stateData]);
 
   const getComplexityColor = (complexity) => {
     if (complexity === 'Critical') return 'text-red-700 bg-red-100 border-red-300';
@@ -435,6 +470,8 @@ const InsuranceAnalyticsPlatform = () => {
     const StateDetailPanel = ({ code }) => {
       const d = stateData[code];
       if (!d) return null;
+      const pct = d.percentComplete || 0;
+      const pctClass = pct > 80 ? 'text-green-600' : (pct >= 60 && pct < 80) ? 'text-amber-600' : 'text-red-600';
       
       return (
         <div className="bg-white rounded-lg shadow-lg p-6 font-sans">
@@ -469,11 +506,11 @@ const InsuranceAnalyticsPlatform = () => {
                 <span>No Run</span>
                 <span>% Complete</span>
               </div>
-              <div className="flex justify-between font-semibold text-gray-800">
-                <span>{d.pass || 0}</span>
-                <span>{d.fail || 0}</span>
-                <span>{d.noRun || 0}</span>
-                <span>{d.percentComplete ? d.percentComplete.toFixed(1) : 0}%</span>
+              <div className="flex justify-between font-semibold">
+                <span className="text-green-600">{d.pass || 0}</span>
+                <span className="text-red-600">{d.fail || 0}</span>
+                <span className="text-gray-600">{d.noRun || 0}</span>
+                <span className={pctClass}>{d.percentComplete ? d.percentComplete.toFixed(1) : 0}%</span>
               </div>
             </div>
             
@@ -484,6 +521,33 @@ const InsuranceAnalyticsPlatform = () => {
                   className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500"
                   style={{ width: `${d.percentComplete || 0}%` }}
                 ></div>
+              </div>
+            </div>
+          </div>
+
+          {/* State Metrics Section */}
+          <div className="pt-3 mt-3 border-t border-gray-200">
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">State Metrics</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+              <div className="bg-gray-50 rounded p-2">
+                <p className="text-gray-600">State Ranking</p>
+                <p className="font-semibold text-gray-800">{d.stateRanking ?? 0}</p>
+              </div>
+              <div className="bg-gray-50 rounded p-2">
+                <p className="text-gray-600">Total Forms</p>
+                <p className="font-semibold text-gray-800">{d.totalForms ?? 0}</p>
+              </div>
+              <div className="bg-gray-50 rounded p-2">
+                <p className="text-gray-600">Auto Forms</p>
+                <p className="font-semibold text-gray-800">{d.autoForms ?? 0}</p>
+              </div>
+              <div className="bg-gray-50 rounded p-2">
+                <p className="text-gray-600">Home/Dwelling</p>
+                <p className="font-semibold text-gray-800">{d.homeForms ?? 0}</p>
+              </div>
+              <div className="bg-gray-50 rounded p-2">
+                <p className="text-gray-600">Umbrella</p>
+                <p className="font-semibold text-gray-800">{d.umbrella ?? 0}</p>
               </div>
             </div>
           </div>
@@ -958,7 +1022,126 @@ const InsuranceAnalyticsPlatform = () => {
       );
     };
 
-    const OverviewContent = () => (
+    // Memoized US map component to isolate re-renders from surrounding UI
+    const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, hoveredState, stateData, getStateColor, setHoverThrottled, setSelectedState }) => {
+      if (!usTopo) {
+        return <div className="h-64 flex items-center justify-center text-sm text-gray-500">Loading US map...</div>;
+      }
+      return (
+        <ComposableMap projection="geoAlbersUsa">
+          <Geographies geography={usTopo}>
+            {({ geographies }) => (
+              <>
+                {geographies.map((geo) => {
+                  const name = geo.properties.name;
+                  const stateCode = stateAbbreviations[name];
+                  if (!stateCode) return null;
+                  const isInSelectedYear = selectedYearStateSet?.has(stateCode);
+                  const fillColor =
+                    isInSelectedYear || hoveredState === stateCode
+                      ? '#fbbf24'
+                      : getStateColor(stateCode);
+                  const centroid = geoCentroid(geo);
+                  const labelFill =
+                    isInSelectedYear || hoveredState === stateCode
+                      ? '#1f2937'
+                      : (['High', 'Critical'].includes(stateData?.[stateCode]?.testingComplexity)
+                          ? '#fff'
+                          : '#1f2937');
+                  return (
+                    <React.Fragment key={geo.rsmKey}>
+                      <Geography
+                        geography={geo}
+                        fill={fillColor}
+                        stroke="#fff"
+                        strokeWidth={1}
+                        onMouseEnter={() => {
+                          // Cancel any pending leave and schedule hover set
+                          cancelLeave();
+                          if (hoveredRef.current !== stateCode) setHoverThrottled(stateCode);
+                        }}
+                        onMouseLeave={() => {
+                          // Defer clearing hover to avoid interim null during fast transitions
+                          cancelLeave();
+                          leaveTimeoutRef.current = setTimeout(() => {
+                            if (hoveredRef.current === stateCode) setHoverThrottled(null);
+                          }, 60);
+                        }}
+                        onClick={() => setSelectedState(stateCode)}
+                        style={{
+                          default: { outline: 'none' },
+                          hover: { outline: 'none' },
+                          pressed: { outline: 'none' },
+                        }}
+                      />
+                      <Marker coordinates={centroid}>
+                        <text
+                          textAnchor="middle"
+                          className="pointer-events-none text-xs font-bold"
+                          fill={labelFill}
+                        >
+                          {stateCode}
+                        </text>
+                      </Marker>
+                    </React.Fragment>
+                  );
+                })}
+              </>
+            )}
+          </Geographies>
+        </ComposableMap>
+      );
+    });
+
+    const OverviewContent = () => {
+      const selectedYearStateSet = useMemo(() => {
+        if (!selectedYear || !timelineData || !selectedLOB) return null;
+        const yearData = timelineData[selectedLOB][selectedYear];
+        if (!yearData) return null;
+        const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+        const codes = new Set();
+        quarters.forEach((q) => yearData[q]?.forEach((s) => codes.add(s.code)));
+        return codes;
+      }, [selectedYear, timelineData, selectedLOB]);
+
+      // Memoized per-state renderer to avoid unnecessary re-renders
+      const GeoState = React.memo(
+        ({ geo, stateCode, centroid, fill, labelFill, onEnter, onLeave, onClick }) => (
+          <>
+            <Geography
+              geography={geo}
+              fill={fill}
+              stroke="#fff"
+              strokeWidth={1}
+              onMouseEnter={onEnter}
+              onMouseLeave={onLeave}
+              onClick={onClick}
+              style={{
+                default: { outline: 'none' },
+                hover: { outline: 'none' },
+                pressed: { outline: 'none' },
+              }}
+            />
+            <Marker coordinates={centroid}>
+              <text
+                textAnchor="middle"
+                className="pointer-events-none text-xs font-bold"
+                fill={labelFill}
+              >
+                {stateCode}
+              </text>
+            </Marker>
+          </>
+        ),
+        (prev, next) =>
+          prev.fill === next.fill &&
+          prev.labelFill === next.labelFill &&
+          prev.stateCode === next.stateCode &&
+          prev.centroid[0] === next.centroid[0] &&
+          prev.centroid[1] === next.centroid[1]
+      );
+
+      return (
       <>
         {/* KPI Cards - Only show in Overview */}
         {selectedLOB === 'overview' && (
@@ -998,63 +1181,16 @@ const InsuranceAnalyticsPlatform = () => {
             {/* Map Section - 2/3 width */}
             <div className="lg:col-span-2 bg-white rounded-lg shadow-lg p-6">
               <div className="relative bg-gray-50 rounded-lg p-4">
-                <svg viewBox="0 0 1000 550" className="w-full h-auto" style={{ maxHeight: '400px' }}>
-                  {Object.keys(stateData).map(stateCode => {
-                    const pos = statePositions[stateCode];
-                    if (!pos) return null;
-                    
-                    // Check if this state should be highlighted (in selected year)
-                    let isInSelectedYear = false;
-                    if (selectedYear && timelineData && selectedLOB) {
-                      const yearData = timelineData[selectedLOB][selectedYear];
-                      if (yearData) {
-                        const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
-                        isInSelectedYear = quarters.some(quarter => 
-                          yearData[quarter]?.some(state => state.code === stateCode)
-                        );
-                      }
-                    }
-                    
-                    // Determine fill color
-                    let fillColor;
-                    if (isInSelectedYear) {
-                      fillColor = '#fbbf24'; // Yellow for states in selected year
-                    } else if (hoveredState === stateCode) {
-                      fillColor = '#fbbf24'; // Yellow for hovered state
-                    } else {
-                      fillColor = getStateColor(stateCode); // Normal color based on complexity
-                    }
-                    
-                    return (
-                      <g key={stateCode}>
-                        <rect
-                          x={pos.x}
-                          y={pos.y}
-                          width={pos.width}
-                          height={pos.height}
-                          fill={fillColor}
-                          stroke="#fff"
-                          strokeWidth="2"
-                          rx="4"
-                          className="cursor-pointer transition-all duration-200 hover:opacity-80"
-                          onMouseEnter={() => setHoveredState(stateCode)}
-                          onMouseLeave={() => setHoveredState(null)}
-                          onClick={() => setSelectedState(stateCode)}
-                        />
-                        <text
-                          x={pos.x + pos.width / 2}
-                          y={pos.y + pos.height / 2}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          className="pointer-events-none text-xs font-bold"
-                          fill={isInSelectedYear || hoveredState === stateCode ? '#1f2937' : (['High', 'Critical'].includes(stateData[stateCode].testingComplexity) ? '#fff' : '#1f2937')}
-                        >
-                          {stateCode}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </svg>
+                <USMap
+                  usTopo={usTopo}
+                  stateAbbreviations={stateAbbreviations}
+                  selectedYearStateSet={selectedYearStateSet}
+                  hoveredState={hoveredState}
+                  stateData={stateData}
+                  getStateColor={getStateColor}
+                  setHoverThrottled={setHoverThrottled}
+                  setSelectedState={setSelectedState}
+                />
                 
                 {/* Legend */}
                 <div className="mt-4 flex items-center justify-center gap-4 text-sm flex-wrap">
@@ -1098,6 +1234,7 @@ const InsuranceAnalyticsPlatform = () => {
         )}
       </>
     );
+    };
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex">
