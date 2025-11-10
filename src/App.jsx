@@ -114,6 +114,60 @@ const InsuranceAnalyticsPlatform = () => {
     const filingTypes = {}; 
     const regulationTypes = {};
     
+    // Execution data from Excel
+    const executionData = {
+      'AL': { pass: 120, fail: 35, noRun: 25, percentComplete: 66.67 },
+      'AK': { pass: 120, fail: 35, noRun: 10, percentComplete: 72.73 },
+      'AZ': { pass: 120, fail: 20, noRun: 5, percentComplete: 82.76 },
+      'AR': { pass: 120, fail: 35, noRun: 25, percentComplete: 66.67 },
+      'CA': { pass: 120, fail: 35, noRun: 25, percentComplete: 66.67 },
+      'CO': { pass: 120, fail: 35, noRun: 25, percentComplete: 66.67 },
+      'CT': { pass: 120, fail: 35, noRun: 25, percentComplete: 66.67 },
+      'DE': { pass: 120, fail: 35, noRun: 25, percentComplete: 66.67 },
+      'FL': { pass: 120, fail: 35, noRun: 25, percentComplete: 66.67 },
+      'GA': { pass: 120, fail: 35, noRun: 25, percentComplete: 66.67 },
+      'HI': { pass: 120, fail: 35, noRun: 25, percentComplete: 66.67 },
+      'ID': { pass: 125, fail: 30, noRun: 15, percentComplete: 76.00 },
+      'IL': { pass: 118, fail: 40, noRun: 12, percentComplete: 71.00 },
+      'IN': { pass: 130, fail: 20, noRun: 10, percentComplete: 83.00 },
+      'IA': { pass: 115, fail: 25, noRun: 20, percentComplete: 78.00 },
+      'KS': { pass: 140, fail: 10, noRun: 5, percentComplete: 93.00 },
+      'KY': { pass: 110, fail: 30, noRun: 15, percentComplete: 76.00 },
+      'LA': { pass: 122, fail: 28, noRun: 10, percentComplete: 80.00 },
+      'ME': { pass: 128, fail: 25, noRun: 12, percentComplete: 82.00 },
+      'MD': { pass: 119, fail: 35, noRun: 11, percentComplete: 74.00 },
+      'MA': { pass: 135, fail: 18, noRun: 7, percentComplete: 86.00 },
+      'MI': { pass: 127, fail: 22, noRun: 11, percentComplete: 81.00 },
+      'MN': { pass: 120, fail: 25, noRun: 20, percentComplete: 78.00 },
+      'MS': { pass: 118, fail: 27, noRun: 15, percentComplete: 77.00 },
+      'MO': { pass: 130, fail: 15, noRun: 10, percentComplete: 84.00 },
+      'MT': { pass: 121, fail: 34, noRun: 15, percentComplete: 76.00 },
+      'NE': { pass: 123, fail: 32, noRun: 10, percentComplete: 79.00 },
+      'NV': { pass: 140, fail: 10, noRun: 10, percentComplete: 87.00 },
+      'NH': { pass: 115, fail: 28, noRun: 12, percentComplete: 80.00 },
+      'NJ': { pass: 129, fail: 20, noRun: 10, percentComplete: 83.00 },
+      'NM': { pass: 119, fail: 33, noRun: 10, percentComplete: 78.00 },
+      'NY': { pass: 117, fail: 38, noRun: 8, percentComplete: 75.00 },
+      'NC': { pass: 132, fail: 15, noRun: 8, percentComplete: 86.00 },
+      'ND': { pass: 125, fail: 30, noRun: 10, percentComplete: 80.00 },
+      'OH': { pass: 137, fail: 12, noRun: 8, percentComplete: 88.00 },
+      'OK': { pass: 114, fail: 36, noRun: 10, percentComplete: 76.00 },
+      'OR': { pass: 120, fail: 30, noRun: 10, percentComplete: 80.00 },
+      'PA': { pass: 135, fail: 18, noRun: 7, percentComplete: 86.00 },
+      'RI': { pass: 118, fail: 32, noRun: 10, percentComplete: 78.00 },
+      'SC': { pass: 128, fail: 25, noRun: 8, percentComplete: 83.00 },
+      'SD': { pass: 123, fail: 28, noRun: 9, percentComplete: 81.00 },
+      'TN': { pass: 117, fail: 35, noRun: 10, percentComplete: 77.00 },
+      'TX': { pass: 132, fail: 18, noRun: 7, percentComplete: 86.00 },
+      'UT': { pass: 125, fail: 30, noRun: 10, percentComplete: 80.00 },
+      'VT': { pass: 119, fail: 34, noRun: 8, percentComplete: 79.00 },
+      'VA': { pass: 130, fail: 20, noRun: 10, percentComplete: 83.00 },
+      'WA': { pass: 127, fail: 25, noRun: 8, percentComplete: 82.00 },
+      'WV': { pass: 118, fail: 33, noRun: 9, percentComplete: 78.00 },
+      'WI': { pass: 135, fail: 15, noRun: 5, percentComplete: 88.00 },
+      'WY': { pass: 120, fail: 28, noRun: 12, percentComplete: 80.00 }
+    };
+    
     // Predefined Auto LOB Timeline based on exact requirements
     const autoTimeline = {
       '2025': {
@@ -204,6 +258,10 @@ const InsuranceAnalyticsPlatform = () => {
         homeFiling: row['Home Filing'] || 'N/A',
         rateRegulation: row['Rate Regulation'] || 'N/A',
         pipRequired: row['PIP Required'] || 'N/A',
+        pass: executionData[abbr]?.pass || 0,
+        fail: executionData[abbr]?.fail || 0,
+        noRun: executionData[abbr]?.noRun || 0,
+        percentComplete: executionData[abbr]?.percentComplete || 0,
         umUim: row['UM/UIM'] || 'N/A',
         noFault: row['No-Fault'] || 'N/A',
         complexity,
@@ -319,7 +377,7 @@ const InsuranceAnalyticsPlatform = () => {
             <FileSpreadsheet className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-5xl font-bold text-white mb-4">
-            State Insurance Analytics Platform
+            Insurelytics
           </h1>
           <p className="text-xl text-blue-200 mb-2">
             Upload your Excel file to visualize state filing jurisdiction analysis
@@ -368,9 +426,7 @@ const InsuranceAnalyticsPlatform = () => {
           </div>
         </div>
 
-        <div className="mt-8 text-center text-blue-200 text-sm">
-          <p>Expected columns: State, Total Forms, Auto Forms, Home/Dwelling, Complexity, etc.</p>
-        </div>
+        
       </div>
     </div>
   );
@@ -381,29 +437,55 @@ const InsuranceAnalyticsPlatform = () => {
       if (!d) return null;
       
       return (
-        <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="bg-white rounded-lg shadow-lg p-6 font-sans">
           <div className="flex justify-between items-start mb-3">
-            <h3 className="text-xl font-bold text-gray-800">{d.name}</h3>
+            <h3 className="text-xl font-semibold text-gray-800">{d.name}</h3>
             {selectedState && (
               <button onClick={() => setSelectedState(null)} className="text-gray-500 hover:text-gray-700 text-xl">✕</button>
             )}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-            <div><p className="text-sm text-gray-600">Total Forms</p><p className="text-2xl font-bold text-blue-600">{d.totalForms}</p></div>
-            <div><p className="text-sm text-gray-600">Auto Forms</p><p className="text-2xl font-bold text-purple-600">{d.autoForms}</p></div>
-            <div><p className="text-sm text-gray-600">Home Forms</p><p className="text-2xl font-bold text-pink-600">{d.homeForms}</p></div>
-            <div><p className="text-sm text-gray-600">Complexity</p><p className="text-lg font-bold text-indigo-600">{d.testingComplexity}</p></div>
-            <div><p className="text-sm text-gray-600">Filing Type</p><p className="text-sm font-bold text-gray-700">{d.filingType}</p></div>
-            <div><p className="text-sm text-gray-600">Rate Regulation</p><p className="text-sm font-bold text-gray-700">{d.rateRegulation}</p></div>
+            <div><p className="text-sm text-gray-600">Complexity</p><p className="text-base font-semibold text-gray-800">{d.testingComplexity}</p></div>
+            <div><p className="text-sm text-gray-600">Filing Type</p><p className="text-sm font-semibold text-gray-800">{d.filingType}</p></div>
+            <div><p className="text-sm text-gray-600">Rate Regulation</p><p className="text-sm font-semibold text-gray-800">{d.rateRegulation}</p></div>
           </div>
-          <div className="pt-3 border-t border-blue-200">
+          <div className="pt-3 border-t border-gray-200">
             <p className="text-sm text-gray-600 mb-1 font-semibold">Key Requirements</p>
             <p className="text-sm text-gray-800">{d.keyRequirements}</p>
           </div>
           <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
-            <div className="bg-gray-50 rounded p-2"><span className="text-gray-600">PIP:</span> <span className="font-semibold">{d.pipRequired}</span></div>
-            <div className="bg-gray-50 rounded p-2"><span className="text-gray-600">UM/UIM:</span> <span className="font-semibold">{d.umUim}</span></div>
-            <div className="bg-gray-50 rounded p-2"><span className="text-gray-600">No-Fault:</span> <span className="font-semibold">{d.noFault}</span></div>
+            <div className="bg-gray-50 rounded p-2"><span className="text-gray-600">PIP:</span> <span className="font-semibold text-gray-800">{d.pipRequired}</span></div>
+            <div className="bg-gray-50 rounded p-2"><span className="text-gray-600">UM/UIM:</span> <span className="font-semibold text-gray-800">{d.umUim}</span></div>
+            <div className="bg-gray-50 rounded p-2"><span className="text-gray-600">No-Fault:</span> <span className="font-semibold text-gray-800">{d.noFault}</span></div>
+          </div>
+          
+          {/* Execution Summary Section */}
+          <div className="pt-3 mt-3 border-t border-gray-200">
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Execution Summary</h4>
+            <div className="text-sm">
+              <div className="flex justify-between mb-1 font-medium text-gray-600">
+                <span>Pass</span>
+                <span>Fail</span>
+                <span>No Run</span>
+                <span>% Complete</span>
+              </div>
+              <div className="flex justify-between font-semibold text-gray-800">
+                <span>{d.pass || 0}</span>
+                <span>{d.fail || 0}</span>
+                <span>{d.noRun || 0}</span>
+                <span>{d.percentComplete ? d.percentComplete.toFixed(1) : 0}%</span>
+              </div>
+            </div>
+            
+            {/* Progress bar */}
+            <div className="mt-2">
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${d.percentComplete || 0}%` }}
+                ></div>
+              </div>
+            </div>
           </div>
         </div>
       );
@@ -499,32 +581,32 @@ const InsuranceAnalyticsPlatform = () => {
 
             {/* Quarter Details Below - Shows when year is selected */}
             {selectedYear && (
-              <div className="mt-6 border-t-2 border-gray-300 pt-4">
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="font-bold text-gray-800 text-sm">{selectedYear} - Quarters Breakdown</h4>
+              <div className="mt-4 border-t border-gray-300 pt-3">
+                <div className="bg-gray-50 rounded-lg p-2">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-semibold text-gray-800 text-xs">{selectedYear} - Quarters Breakdown</h4>
                     <button
                       onClick={() => setSelectedYear(null)}
-                      className="text-gray-500 hover:text-gray-700 text-sm font-medium"
+                      className="text-gray-500 hover:text-gray-700 text-xs font-medium"
                     >
                       Close ✕
                     </button>
                   </div>
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-4 gap-2">
                     {quarters.map(quarter => {
                       const states = lobData[selectedYear][quarter] || [];
                       
                       return (
-                        <div key={quarter} className={`border-2 rounded-lg p-2 ${
+                        <div key={quarter} className={`border rounded p-1.5 ${
                           states.length === 0 ? 'border-gray-300 bg-white' : 'border-gray-400 bg-white'
                         }`}>
-                          <div className="font-bold text-gray-800 text-center mb-2 text-sm bg-gray-100 py-1 rounded">
+                          <div className="font-semibold text-gray-800 text-center mb-1 text-xs bg-gray-100 py-0.5 rounded">
                             {quarter}
                           </div>
                           {states.length === 0 ? (
-                            <div className="text-center text-gray-400 text-xs py-2">No states</div>
+                            <div className="text-center text-gray-400 text-[10px] py-1">No states</div>
                           ) : (
-                            <div className="flex flex-wrap gap-1 justify-center">
+                            <div className="flex flex-wrap gap-0.5 justify-center">
                               {states.map((state, idx) => {
                                 const bgColors = {
                                   'Low': '#7fb069',
@@ -535,7 +617,7 @@ const InsuranceAnalyticsPlatform = () => {
                                 return (
                                   <span
                                     key={idx}
-                                    className="px-1.5 py-1 text-white font-bold rounded text-xs cursor-pointer hover:opacity-80"
+                                    className="px-1 py-0.5 text-white font-semibold rounded text-[10px] cursor-pointer hover:opacity-80"
                                     style={{ backgroundColor: bgColors[state.complexity] || '#6b7280' }}
                                     title={`${state.name} - ${state.complexity}`}
                                   >
@@ -921,6 +1003,28 @@ const InsuranceAnalyticsPlatform = () => {
                     const pos = statePositions[stateCode];
                     if (!pos) return null;
                     
+                    // Check if this state should be highlighted (in selected year)
+                    let isInSelectedYear = false;
+                    if (selectedYear && timelineData && selectedLOB) {
+                      const yearData = timelineData[selectedLOB][selectedYear];
+                      if (yearData) {
+                        const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+                        isInSelectedYear = quarters.some(quarter => 
+                          yearData[quarter]?.some(state => state.code === stateCode)
+                        );
+                      }
+                    }
+                    
+                    // Determine fill color
+                    let fillColor;
+                    if (isInSelectedYear) {
+                      fillColor = '#fbbf24'; // Yellow for states in selected year
+                    } else if (hoveredState === stateCode) {
+                      fillColor = '#fbbf24'; // Yellow for hovered state
+                    } else {
+                      fillColor = getStateColor(stateCode); // Normal color based on complexity
+                    }
+                    
                     return (
                       <g key={stateCode}>
                         <rect
@@ -928,7 +1032,7 @@ const InsuranceAnalyticsPlatform = () => {
                           y={pos.y}
                           width={pos.width}
                           height={pos.height}
-                          fill={hoveredState === stateCode ? '#fbbf24' : getStateColor(stateCode)}
+                          fill={fillColor}
                           stroke="#fff"
                           strokeWidth="2"
                           rx="4"
@@ -943,7 +1047,7 @@ const InsuranceAnalyticsPlatform = () => {
                           textAnchor="middle"
                           dominantBaseline="middle"
                           className="pointer-events-none text-xs font-bold"
-                          fill={['High', 'Critical'].includes(stateData[stateCode].testingComplexity) ? '#fff' : '#1f2937'}
+                          fill={isInSelectedYear || hoveredState === stateCode ? '#1f2937' : (['High', 'Critical'].includes(stateData[stateCode].testingComplexity) ? '#fff' : '#1f2937')}
                         >
                           {stateCode}
                         </text>
@@ -970,6 +1074,12 @@ const InsuranceAnalyticsPlatform = () => {
                     <div className="w-4 h-4 rounded" style={{backgroundColor: '#e74c3c'}}></div>
                     <span>Critical</span>
                   </div>
+                  {selectedYear && (
+                    <div className="flex items-center gap-2 ml-4 pl-4 border-l-2 border-gray-300">
+                      <div className="w-4 h-4 rounded" style={{backgroundColor: '#fbbf24'}}></div>
+                      <span className="font-semibold">Selected Year ({selectedYear})</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
