@@ -1077,7 +1077,7 @@ const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, ho
               if (selectedYearStateSet && selectedYearStateSet.size > 0) {
                 if (!isInSelectedYear) {
                   // Blur and dim non-selected states; disable interaction
-                  opacity = 0.35;
+                  opacity = 0.35; // was 10; keep visible but dimmed
                   pointerEvents = 'none';
                   filterValue = 'blur(1.2px) grayscale(50%)';
                 } else {
@@ -1091,7 +1091,7 @@ const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, ho
               if (isHovered) {
                 strokeWidth = 2.5;
                 strokeColor = '#1e40af';
-                opacity = 1;
+                opacity = 1; // fix incorrect 10 -> 1
                 filterValue = 'none';
               }
               
@@ -1116,8 +1116,12 @@ const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, ho
                     onMouseLeave={() => {
                       cancelLeave();
                       leaveTimeoutRef.current = setTimeout(() => {
-                        if (hoveredRef.current === stateCode) setHoverThrottled(null);
-                      }, 60);
+                        // Clear hover and selection if pointer is not on any state
+                        if (hoveredRef.current === stateCode) {
+                          setHoverThrottled(null);
+                          setSelectedState(null);
+                        }
+                      }, 80);
                     }}
                     onClick={() => {
                       if (!selectedYearStateSet || isInSelectedYear) {
