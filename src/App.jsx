@@ -373,13 +373,13 @@ const InsuranceAnalyticsPlatform = () => {
     if (!stateData || !stateData[code]) return '#e5e7eb';
     const testingComplexity = stateData[code].testingComplexity;
     
-    // Colors matching the provided image
-    if (testingComplexity === 'Low') return '#7fb069';      // Green
-    if (testingComplexity === 'Medium') return '#b8985f';   // Brown/Tan
-    if (testingComplexity === 'High') return '#8b4513';     // Dark Brown
-    if (testingComplexity === 'Critical') return '#e74c3c'; // Red
+    // Updated colors: use orange palette for Medium/High
+    if (testingComplexity === 'Low') return '#22c55e';      // Green
+    if (testingComplexity === 'Medium') return '#f59e0b';   // Orange
+    if (testingComplexity === 'High') return '#ea580c';     // Deep Orange
+    if (testingComplexity === 'Critical') return '#991b1b'; // Dark Red
     
-    return '#b8985f'; // Default to Medium
+    return '#f59e0b'; // Default to Medium
   }, [stateData]);
 
   const getComplexityColor = (complexity) => {
@@ -566,6 +566,10 @@ const InsuranceAnalyticsPlatform = () => {
 
       // Handler to toggle year selection
       const handleYearClick = (year) => {
+        // Clear any existing hover/details when changing year selection
+        setHoveredState(null);
+        setSelectedState(null);
+
         if (selectedYear === year) {
           setSelectedYear(null); // Deselect if already selected
         } else {
@@ -581,25 +585,43 @@ const InsuranceAnalyticsPlatform = () => {
               <span className="text-xs text-gray-500 italic">Hover over or click a state to see details</span>
             </h3>
             {/* Complexity Legend */}
-            <div className="flex items-center gap-2 text-xs">
-              <span className="font-semibold text-gray-600">Complexity:</span>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded" style={{backgroundColor: '#7fb069'}}></div>
-                <span>Low</span>
+            {selectedLOB === 'auto' ? (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="font-semibold text-gray-600">State Roll Out Complexity</span>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded" style={{backgroundColor: '#22c55e'}}></div>
+                  <span>Low</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded" style={{backgroundColor: '#f59e0b'}}></div>
+                  <span>Medium</span>
+                </div>
+                <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded" style={{backgroundColor: '#991b1b'}}></div>
+                  <span>High</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded" style={{backgroundColor: '#b8985f'}}></div>
-                <span>Medium</span>
+            ) : (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="font-semibold text-gray-600">Complexity:</span>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded" style={{backgroundColor: '#22c55e'}}></div>
+                  <span>Low</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded" style={{backgroundColor: '#f59e0b'}}></div>
+                  <span>Medium</span>
+                </div>
+                <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded" style={{backgroundColor: '#991b1b'}}></div>
+                  <span>High</span>
+                </div>
+                <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded" style={{backgroundColor: '#991b1b'}}></div>
+                  <span>Critical</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded" style={{backgroundColor: '#8b4513'}}></div>
-                <span>High</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded" style={{backgroundColor: '#e74c3c'}}></div>
-                <span>Critical</span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Horizontal Timeline with Quarters */}
@@ -650,7 +672,11 @@ const InsuranceAnalyticsPlatform = () => {
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="font-semibold text-gray-800 text-xs">{selectedYear} - Quarters Breakdown</h4>
                     <button
-                      onClick={() => setSelectedYear(null)}
+                      onClick={() => {
+                        setSelectedYear(null);
+                        setHoveredState(null);
+                        setSelectedState(null);
+                      }}
                       className="text-gray-500 hover:text-gray-700 text-xs font-medium"
                     >
                       Close ✕
@@ -673,10 +699,10 @@ const InsuranceAnalyticsPlatform = () => {
                             <div className="flex flex-wrap gap-0.5 justify-center">
                               {states.map((state, idx) => {
                                 const bgColors = {
-                                  'Low': '#7fb069',
-                                  'Medium': '#b8985f',
-                                  'High': '#8b4513',
-                                  'Critical': '#e74c3c'
+                                  'Low': '#22c55e',
+                                  'Medium': '#f59e0b',
+                                  'High': '#ea580c',
+                                  'Critical': '#991b1b'
                                 };
                                 return (
                                   <span
@@ -1044,12 +1070,16 @@ const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, ho
               let opacity = 1;
               let strokeWidth = 1;
               let strokeColor = '#fff';
+              let pointerEvents = 'auto';
+              let filterValue = 'none';
               
               // Apply DIM EFFECT when year is selected
               if (selectedYearStateSet && selectedYearStateSet.size > 0) {
                 if (!isInSelectedYear) {
-                  // Dim non-selected states
-                  opacity = 0.25;
+                  // Blur and dim non-selected states; disable interaction
+                  opacity = 0.35;
+                  pointerEvents = 'none';
+                  filterValue = 'blur(1.2px) grayscale(50%)';
                 } else {
                   // Highlight selected states with golden border
                   strokeWidth = 2;
@@ -1062,6 +1092,7 @@ const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, ho
                 strokeWidth = 2.5;
                 strokeColor = '#1e40af';
                 opacity = 1;
+                filterValue = 'none';
               }
               
               const centroid = geoCentroid(geo);
@@ -1088,16 +1119,26 @@ const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, ho
                         if (hoveredRef.current === stateCode) setHoverThrottled(null);
                       }, 60);
                     }}
-                    onClick={() => setSelectedState(stateCode)}
+                    onClick={() => {
+                      if (!selectedYearStateSet || isInSelectedYear) {
+                        setSelectedState(stateCode);
+                      }
+                    }}
                     style={{
                       default: { 
                         outline: 'none',
                         opacity: opacity,
+                        pointerEvents: pointerEvents,
+                        filter: filterValue,
+                        cursor: pointerEvents === 'none' ? 'default' : 'pointer',
                         transition: 'all 0.3s ease-in-out'
                       },
                       hover: { 
                         outline: 'none',
                         opacity: 1,
+                        pointerEvents: pointerEvents,
+                        filter: filterValue,
+                        cursor: pointerEvents === 'none' ? 'default' : 'pointer',
                         transition: 'all 0.2s ease-in-out'
                       },
                       pressed: { outline: 'none' },
@@ -1225,31 +1266,59 @@ const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, ho
                   setSelectedState={setSelectedState}
                 />
                 
-                {/* Legend */}
-                <div className="mt-4 flex items-center justify-center gap-4 text-sm flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded" style={{backgroundColor: '#7fb069'}}></div>
-                    <span>Low</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded" style={{backgroundColor: '#b8985f'}}></div>
-                    <span>Medium</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded" style={{backgroundColor: '#8b4513'}}></div>
-                    <span>High</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded" style={{backgroundColor: '#e74c3c'}}></div>
-                    <span>Critical</span>
-                  </div>
-                  {selectedYear && (
-                    <div className="flex items-center gap-2 ml-4 pl-4 border-l-2 border-gray-300">
-                      <div className="w-4 h-4 rounded" style={{backgroundColor: '#fbbf24'}}></div>
-                      <span className="font-semibold">Selected Year ({selectedYear})</span>
+                {/* Legend and Title: Auto-specific positioning; others remain centered below */}
+                {selectedLOB === 'auto' ? (
+                  <>
+                    {/* Title for Auto Map */}
+                    <div className="absolute top-2 left-4 text-sm font-bold text-gray-800">
+                      Personal Auto - State Rollout Testing Complexity
                     </div>
-                  )}
-                </div>
+                    {/* Legend moved to top-right */}
+                    <div className="absolute top-2 right-4 flex items-center justify-end gap-4 text-sm bg-white/80 rounded-md px-2 py-1 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded" style={{backgroundColor: '#22c55e'}}></div>
+                        <span>Low</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded" style={{backgroundColor: '#f59e0b'}}></div>
+                        <span>Medium</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded" style={{backgroundColor: '#ea580c'}}></div>
+                        <span>High</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded" style={{backgroundColor: '#991b1b'}}></div>
+                        <span>Critical</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-4 flex items-center justify-center gap-4 text-sm flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded" style={{backgroundColor: '#22c55e'}}></div>
+                      <span>Low</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded" style={{backgroundColor: '#f59e0b'}}></div>
+                      <span>Medium</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded" style={{backgroundColor: '#ea580c'}}></div>
+                      <span>High</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded" style={{backgroundColor: '#991b1b'}}></div>
+                      <span>Critical</span>
+                    </div>
+                    {selectedYear && (
+                      <div className="flex items-center gap-2 ml-4 pl-4 border-l-2 border-gray-300">
+                        <div className="w-4 h-4 rounded" style={{backgroundColor: '#fbbf24'}}></div>
+                        <span className="font-semibold">Selected Year ({selectedYear})</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1325,7 +1394,7 @@ const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, ho
               }`}
             >
               <Home className="w-4 h-4" />
-              <span className="font-medium text-sm">Home</span>
+              <span className="font-medium text-sm">Dwelling</span>
             </button>
 
             <button
