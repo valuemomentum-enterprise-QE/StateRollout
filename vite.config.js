@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 // Adjust base to new repository name for GitHub Pages deployment
 export default defineConfig({
-  base: '/InsuranceAnalytics/',
+  base: '/StateRollout/',
   build: {
     outDir: 'docs'
   },
