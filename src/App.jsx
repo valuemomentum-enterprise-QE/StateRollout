@@ -1022,76 +1022,109 @@ const InsuranceAnalyticsPlatform = () => {
       );
     };
 
-    // Memoized US map component to isolate re-renders from surrounding UI
-    const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, hoveredState, stateData, getStateColor, setHoverThrottled, setSelectedState }) => {
-      if (!usTopo) {
-        return <div className="h-64 flex items-center justify-center text-sm text-gray-500">Loading US map...</div>;
-      }
-      return (
-        <ComposableMap projection="geoAlbersUsa">
-          <Geographies geography={usTopo}>
-            {({ geographies }) => (
-              <>
-                {geographies.map((geo) => {
-                  const name = geo.properties.name;
-                  const stateCode = stateAbbreviations[name];
-                  if (!stateCode) return null;
-                  const isInSelectedYear = selectedYearStateSet?.has(stateCode);
-                  const fillColor =
-                    isInSelectedYear || hoveredState === stateCode
-                      ? '#fbbf24'
-                      : getStateColor(stateCode);
-                  const centroid = geoCentroid(geo);
-                  const labelFill =
-                    isInSelectedYear || hoveredState === stateCode
-                      ? '#1f2937'
-                      : (['High', 'Critical'].includes(stateData?.[stateCode]?.testingComplexity)
-                          ? '#fff'
-                          : '#1f2937');
-                  return (
-                    <React.Fragment key={geo.rsmKey}>
-                      <Geography
-                        geography={geo}
-                        fill={fillColor}
-                        stroke="#fff"
-                        strokeWidth={1}
-                        onMouseEnter={() => {
-                          // Cancel any pending leave and schedule hover set
-                          cancelLeave();
-                          if (hoveredRef.current !== stateCode) setHoverThrottled(stateCode);
-                        }}
-                        onMouseLeave={() => {
-                          // Defer clearing hover to avoid interim null during fast transitions
-                          cancelLeave();
-                          leaveTimeoutRef.current = setTimeout(() => {
-                            if (hoveredRef.current === stateCode) setHoverThrottled(null);
-                          }, 60);
-                        }}
-                        onClick={() => setSelectedState(stateCode)}
-                        style={{
-                          default: { outline: 'none' },
-                          hover: { outline: 'none' },
-                          pressed: { outline: 'none' },
-                        }}
-                      />
-                      <Marker coordinates={centroid}>
-                        <text
-                          textAnchor="middle"
-                          className="pointer-events-none text-xs font-bold"
-                          fill={labelFill}
-                        >
-                          {stateCode}
-                        </text>
-                      </Marker>
-                    </React.Fragment>
-                  );
-                })}
-              </>
-            )}
-          </Geographies>
-        </ComposableMap>
-      );
-    });
+    // Memoized US map component with DIM EFFECT
+const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, hoveredState, stateData, getStateColor, setHoverThrottled, setSelectedState }) => {
+  if (!usTopo) {
+    return <div className="h-64 flex items-center justify-center text-sm text-gray-500">Loading US map...</div>;
+  }
+  return (
+    <ComposableMap projection="geoAlbersUsa">
+      <Geographies geography={usTopo}>
+        {({ geographies }) => (
+          <>
+            {geographies.map((geo) => {
+              const name = geo.properties.name;
+              const stateCode = stateAbbreviations[name];
+              if (!stateCode) return null;
+              const isInSelectedYear = selectedYearStateSet?.has(stateCode);
+              const isHovered = hoveredState === stateCode;
+              
+              // Get the base color from complexity
+              let fillColor = getStateColor(stateCode);
+              let opacity = 1;
+              let strokeWidth = 1;
+              let strokeColor = '#fff';
+              
+              // Apply DIM EFFECT when year is selected
+              if (selectedYearStateSet && selectedYearStateSet.size > 0) {
+                if (!isInSelectedYear) {
+                  // Dim non-selected states
+                  opacity = 0.25;
+                } else {
+                  // Highlight selected states with golden border
+                  strokeWidth = 2;
+                  strokeColor = '#fbbf24';
+                }
+              }
+              
+              // Hover effect (overrides selection)
+              if (isHovered) {
+                strokeWidth = 2.5;
+                strokeColor = '#1e40af';
+                opacity = 1;
+              }
+              
+              const centroid = geoCentroid(geo);
+              const labelFill = isInSelectedYear || isHovered
+                ? '#1f2937'
+                : (['High', 'Critical'].includes(stateData?.[stateCode]?.testingComplexity)
+                    ? '#fff'
+                    : '#1f2937');
+                    
+              return (
+                <React.Fragment key={geo.rsmKey}>
+                  <Geography
+                    geography={geo}
+                    fill={fillColor}
+                    stroke={strokeColor}
+                    strokeWidth={strokeWidth}
+                    onMouseEnter={() => {
+                      cancelLeave();
+                      if (hoveredRef.current !== stateCode) setHoverThrottled(stateCode);
+                    }}
+                    onMouseLeave={() => {
+                      cancelLeave();
+                      leaveTimeoutRef.current = setTimeout(() => {
+                        if (hoveredRef.current === stateCode) setHoverThrottled(null);
+                      }, 60);
+                    }}
+                    onClick={() => setSelectedState(stateCode)}
+                    style={{
+                      default: { 
+                        outline: 'none',
+                        opacity: opacity,
+                        transition: 'all 0.3s ease-in-out'
+                      },
+                      hover: { 
+                        outline: 'none',
+                        opacity: 1,
+                        transition: 'all 0.2s ease-in-out'
+                      },
+                      pressed: { outline: 'none' },
+                    }}
+                  />
+                  <Marker coordinates={centroid}>
+                    <text
+                      textAnchor="middle"
+                      className="pointer-events-none text-xs font-bold"
+                      fill={labelFill}
+                      style={{
+                        opacity: opacity,
+                        transition: 'opacity 0.3s ease-in-out'
+                      }}
+                    >
+                      {stateCode}
+                    </text>
+                  </Marker>
+                </React.Fragment>
+              );
+            })}
+          </>
+        )}
+      </Geographies>
+    </ComposableMap>
+  );
+});        
 
     const OverviewContent = () => {
       const selectedYearStateSet = useMemo(() => {
