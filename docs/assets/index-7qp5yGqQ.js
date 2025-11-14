@@ -805,7 +805,7 @@ Filters:
                         Status: PASSING (95%)
                     </div>
                     <div class="status-item status-yellow">
-                        <strong>ClaimCenter → FinPAL</strong><br>
+                        <strong>PolicyCenter → ClaimCenter</strong><br>
                         Last Test: 5 min ago<br>
                         Status: DEGRADED (85%)
                     </div>
