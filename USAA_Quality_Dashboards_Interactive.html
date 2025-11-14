@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USAA E2E Testing - Quality Intelligence Dashboards</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #003366 0%, #0066cc 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .dashboard-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .tab {
+            padding: 15px 30px;
+            background: #f0f2f5;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            background: #e1e4e8;
+        }
+
+        .tab.active {
+            background: #0066cc;
+            color: white;
+        }
+
+        .dashboard {
+            display: none;
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #0066cc;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 3em;
+            font-weight: bold;
+            color: #003366;
+            margin-bottom: 5px;
+        }
+
+        .metric-value.good {
+            color: #28a745;
+        }
+
+        .metric-value.warning {
+            color: #ffc107;
+        }
+
+        .metric-value.critical {
+            color: #dc3545;
+        }
+
+        .metric-trend {
+            font-size: 0.9em;
+            color: #28a745;
+        }
+
+        .metric-trend.down {
+            color: #dc3545;
+        }
+
+        .chart-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .chart-section h3 {
+            color: #003366;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .status-item {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.3s;
+        }
+
+        .status-item:hover {
+            transform: scale(1.05);
+        }
+
+        .status-green {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .status-yellow {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffc107;
+        }
+
+        .status-red {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #0066cc 0%, #00aaff 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: width 1s ease;
+        }
+
+        .progress-bar.warning {
+            background: linear-gradient(90deg, #ffc107 0%, #ffdb4d 100%);
+        }
+
+        .progress-bar.critical {
+            background: linear-gradient(90deg, #dc3545 0%, #ff6b7a 100%);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        table th {
+            background: #003366;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge-green {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-yellow {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-red {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-blue {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .traceability-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 30px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+        }
+
+        .flow-item {
+            flex: 1;
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin: 0 10px;
+        }
+
+        .flow-arrow {
+            font-size: 2em;
+            color: #0066cc;
+        }
+
+        .alert-box {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+        }
+
+        .defect-pattern-chart {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .pattern-item {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #dc3545;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .pattern-title {
+            font-weight: bold;
+            color: #003366;
+            margin-bottom: 10px;
+        }
+
+        .pattern-count {
+            font-size: 2em;
+            color: #dc3545;
+            margin: 10px 0;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            .dashboard-tabs {
+                display: none;
+            }
+            .dashboard {
+                display: block !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 USAA P&C Quality Intelligence Dashboards</h1>
+            <p>Real-Time End-to-End Testing Metrics | Traceability | Production Defect Intelligence</p>
+            <p style="margin-top: 10px; opacity: 0.9;">Updated: <span id="lastUpdate"></span> | Refresh: Real-Time</p>
+        </div>
+
+        <div class="dashboard-tabs">
+            <button class="tab active" onclick="showDashboard('executive')">📊 Executive Dashboard</button>
+            <button class="tab" onclick="showDashboard('tactical')">📈 Tactical Dashboard</button>
+            <button class="tab" onclick="showDashboard('operational')">⚙️ Daily Operations</button>
+            <button class="tab" onclick="showDashboard('traceability')">🔗 Traceability Matrix</button>
+            <button class="tab" onclick="showDashboard('production')">🔍 Production Intelligence</button>
+        </div>
+
+        <!-- EXECUTIVE DASHBOARD -->
+        <div id="executive" class="dashboard active">
+            <h2 style="color: #003366; margin-bottom: 20px;">Executive Dashboard - Strategic Quality View</h2>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Release Readiness Score</div>
+                    <div class="metric-value good">92</div>
+                    <div class="metric-trend">▲ +5 points vs last release</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: 92%;">92%</div>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Major Incidents (30 days)</div>
+                    <div class="metric-value good">0</div>
+                    <div class="metric-trend">▼ Zero Integration MIs Achieved</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">E2E Automation Coverage</div>
+                    <div class="metric-value good">87%</div>
+                    <div class="metric-trend">▲ +12% QoQ | Target: 75-90%</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: 87%;">87%</div>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Cycle Time Reduction</div>
+                    <div class="metric-value good">38%</div>
+                    <div class="metric-trend">▲ vs Baseline | Target: 40%</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Cross-Portfolio Defects</div>
+                    <div class="metric-value warning">12</div>
+                    <div class="metric-trend">HIGH Severity Open</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Cost Optimization</div>
+                    <div class="metric-value good">33%</div>
+                    <div class="metric-trend">▲ Savings vs Prior Year</div>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h3>Portfolio Quality Status</h3>
+                <div class="status-grid">
+                    <div class="status-item status-green">
+                        <div>Policy Modernization</div>
+                        <div style="font-size: 2em; margin: 10px 0;">✓</div>
+                        <div>Ready for WI Go-Live</div>
+                    </div>
+                    <div class="status-item status-green">
+                        <div>Shared Solutions</div>
+                        <div style="font-size: 2em; margin: 10px 0;">✓</div>
+                        <div>Release Ready</div>
+                    </div>
+                    <div class="status-item status-yellow">
+                        <div>Claims</div>
+                        <div style="font-size: 2em; margin: 10px 0;">!</div>
+                        <div>2 Blockers Remaining</div>
+                    </div>
+                    <div class="status-item status-green">
+                        <div>Digital & Salesforce</div>
+                        <div style="font-size: 2em; margin: 10px 0;">✓</div>
+                        <div>Regression Complete</div>
+                    </div>
+                    <div class="status-item status-green">
+                        <div>Data</div>
+                        <div style="font-size: 2em; margin: 10px 0;">✓</div>
+                        <div>ETL Validated</div>
+                    </div>
+                    <div class="status-item status-green">
+                        <div>Legacy Systems</div>
+                        <div style="font-size: 2em; margin: 10px 0;">✓</div>
+                        <div>BAU Testing Complete</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h3>Quality Trend Analysis (Last 12 Months)</h3>
+                <table>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Current</th>
+                        <th>Last Quarter</th>
+                        <th>Last Year</th>
+                        <th>Trend</th>
+                    </tr>
+                    <tr>
+                        <td>Integration Major Incidents</td>
+                        <td><span class="badge badge-green">0</span></td>
+                        <td>2</td>
+                        <td>8</td>
+                        <td style="color: #28a745; font-weight: bold;">▼ -100% YoY</td>
+                    </tr>
+                    <tr>
+                        <td>Test Automation Coverage</td>
+                        <td><span class="badge badge-green">87%</span></td>
+                        <td>75%</td>
+                        <td>52%</td>
+                        <td style="color: #28a745; font-weight: bold;">▲ +35% YoY</td>
+                    </tr>
+                    <tr>
+                        <td>Defect Escape Rate</td>
+                        <td><span class="badge badge-green">1.8%</span></td>
+                        <td>2.4%</td>
+                        <td>4.2%</td>
+                        <td style="color: #28a745; font-weight: bold;">▼ -57% YoY</td>
+                    </tr>
+                    <tr>
+                        <td>Average E2E Cycle Time</td>
+                        <td><span class="badge badge-green">18 days</span></td>
+                        <td>23 days</td>
+                        <td>29 days</td>
+                        <td style="color: #28a745; font-weight: bold;">▼ -38% YoY</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="alert-box alert-info">
+                <div style="font-size: 2em;">💡</div>
+                <div>
+                    <strong>Strategic Recommendation:</strong> Zero Major Incidents achieved for Q4. Continue current E2E testing approach for Policy Modernization state rollouts. Consider expanding AI-powered test generation to Agency Services portfolio based on success in Digital channels.
+                </div>
+            </div>
+        </div>
+
+        <!-- TACTICAL DASHBOARD -->
+        <div id="tactical" class="dashboard">
+            <h2 style="color: #003366; margin-bottom: 20px;">Tactical Dashboard - Portfolio Coordination</h2>
+            
+            <div class="chart-section">
+                <h3>Today's Test Execution Status</h3>
+                <table>
+                    <tr>
+                        <th>Portfolio</th>
+                        <th>Tests Planned</th>
+                        <th>Executed</th>
+                        <th>Passed</th>
+                        <th>Failed</th>
+                        <th>Blocked</th>
+                        <th>Progress</th>
+                    </tr>
+                    <tr>
+                        <td>Policy Modernization</td>
+                        <td>245</td>
+                        <td>232</td>
+                        <td>218</td>
+                        <td>8</td>
+                        <td>6</td>
+                        <td>
+                            <div class="progress-bar-container" style="height: 20px;">
+                                <div class="progress-bar" style="width: 95%; font-size: 0.8em;">95%</div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Shared Solutions</td>
+                        <td>182</td>
+                        <td>165</td>
+                        <td>158</td>
+                        <td>7</td>
+                        <td>0</td>
+                        <td>
+                            <div class="progress-bar-container" style="height: 20px;">
+                                <div class="progress-bar" style="width: 91%; font-size: 0.8em;">91%</div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Claims</td>
+                        <td>128</td>
+                        <td>98</td>
+                        <td>89</td>
+                        <td>9</td>
+                        <td>2</td>
+                        <td>
+                            <div class="progress-bar-container" style="height: 20px;">
+                                <div class="progress-bar warning" style="width: 77%; font-size: 0.8em;">77%</div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Digital & Salesforce</td>
+                        <td>156</td>
+                        <td>156</td>
+                        <td>151</td>
+                        <td>5</td>
+                        <td>0</td>
+                        <td>
+                            <div class="progress-bar-container" style="height: 20px;">
+                                <div class="progress-bar" style="width: 100%; font-size: 0.8em;">100%</div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="chart-section">
+                <h3>Integration Health Status</h3>
+                <div class="status-grid">
+                    <div class="status-item status-green">
+                        <strong>PolicyCenter → BASE</strong><br>
+                        Last Test: 10 min ago<br>
+                        Status: PASSING (100%)
+                    </div>
+                    <div class="status-item status-green">
+                        <strong>PolicyCenter → PICS</strong><br>
+                        Last Test: 15 min ago<br>
+                        Status: PASSING (95%)
+                    </div>
+                    <div class="status-item status-yellow">
+                        <strong>ClaimCenter → FinPAL</strong><br>
+                        Last Test: 5 min ago<br>
+                        Status: DEGRADED (85%)
+                    </div>
+                    <div class="status-item status-green">
+                        <strong>Mobile → Policy API</strong><br>
+                        Last Test: 8 min ago<br>
+                        Status: PASSING (98%)
+                    </div>
+                    <div class="status-item status-green">
+                        <strong>BASE → Data Warehouse</strong><br>
+                        Last Test: 1 hour ago<br>
+                        Status: PASSING (100%)
+                    </div>
+                    <div class="status-item status-yellow">
+                        <strong>Salesforce → PolicyCenter</strong><br>
+                        Last Test: 3 min ago<br>
+                        Status: INTERMITTENT (82%)
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert-box alert-warning">
+                <div style="font-size: 2em;">⚠️</div>
+                <div>
+                    <strong>Action Required:</strong> ClaimCenter → FinPAL integration showing intermittent timeouts. Estimated impact: Claims settlement workflows may be delayed. Environment team investigating. ETA resolution: 2 hours.
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h3>Open Defects by Portfolio</h3>
+                <table>
+                    <tr>
+                        <th>Portfolio</th>
+                        <th>Critical</th>
+                        <th>High</th>
+                        <th>Medium</th>
+                        <th>Low</th>
+                        <th>Total</th>
+                        <th>Avg Resolution Time</th>
+                    </tr>
+                    <tr>
+                        <td>Policy Modernization</td>
+                        <td><span class="badge badge-red">0</span></td>
+                        <td><span class="badge badge-yellow">3</span></td>
+                        <td><span class="badge badge-blue">8</span></td>
+                        <td>12</td>
+                        <td>23</td>
+                        <td>36 hours</td>
+                    </tr>
+                    <tr>
+                        <td>Shared Solutions</td>
+                        <td><span class="badge badge-red">0</span></td>
+                        <td><span class="badge badge-yellow">5</span></td>
+                        <td><span class="badge badge-blue">12</span></td>
+                        <td>18</td>
+                        <td>35</td>
+                        <td>42 hours</td>
+                    </tr>
+                    <tr>
+                        <td>Claims</td>
+                        <td><span class="badge badge-red">0</span></td>
+                        <td><span class="badge badge-yellow">4</span></td>
+                        <td><span class="badge badge-blue">6</span></td>
+                        <td>9</td>
+                        <td>19</td>
+                        <td>28 hours</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- OPERATIONAL DASHBOARD -->
+        <div id="operational" class="dashboard">
+            <h2 style="color: #003366; margin-bottom: 20px;">Daily Operations Dashboard</h2>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">My Tests Today</div>
+                    <div class="metric-value">18</div>
+                    <div class="metric-trend">12 Complete | 6 Remaining</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Defects Assigned to Me</div>
+                    <div class="metric-value warning">3</div>
+                    <div class="metric-trend">1 Needs Retest | 2 In Progress</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Automation Pass Rate</div>
+                    <div class="metric-value good">94%</div>
+                    <div class="metric-trend">▲ 328/349 scripts passing</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Environment Status</div>
+                    <div class="metric-value good">✓</div>
+                    <div class="metric-trend">All my environments UP</div>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h3>My Work Queue - Priority Sequence</h3>
+                <table>
+                    <tr>
+                        <th>Priority</th>
+                        <th>Test Scenario</th>
+                        <th>Integration</th>
+                        <th>Est. Time</th>
+                        <th>Dependencies</th>
+                        <th>Status</th>
+                    </tr>
+                    <tr style="background: #fff3cd;">
+                        <td><span class="badge badge-red">P1</span></td>
+                        <td>WI Dwelling Quote-to-Bind</td>
+                        <td>PolicyCenter→BASE→PICS</td>
+                        <td>45 min</td>
+                        <td><span class="badge badge-green">Ready</span></td>
+                        <td><button style="padding: 5px 15px; background: #0066cc; color: white; border: none; border-radius: 5px; cursor: pointer;">Execute</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-yellow">P2</span></td>
+                        <td>BASE Billing Regression</td>
+                        <td>BASE→All Systems</td>
+                        <td>30 min</td>
+                        <td><span class="badge badge-green">Ready</span></td>
+                        <td><button style="padding: 5px 15px; background: #0066cc; color: white; border: none; border-radius: 5px; cursor: pointer;">Execute</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-blue">P3</span></td>
+                        <td>Claims FNOL Digital</td>
+                        <td>Digital→ClaimCenter</td>
+                        <td>20 min</td>
+                        <td><span class="badge badge-yellow">Environment Busy</span></td>
+                        <td><button disabled style="padding: 5px 15px; background: #ccc; color: #666; border: none; border-radius: 5px;">Blocked</button></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="alert-box alert-danger">
+                <div style="font-size: 2em;">🔴</div>
+                <div>
+                    <strong>Immediate Attention:</strong> Priority 1 test "WI Dwelling Quote-to-Bind" is due today by 3 PM. All dependencies are ready. Please execute now.
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h3>Recent Test Failures - Need Investigation</h3>
+                <table>
+                    <tr>
+                        <th>Test ID</th>
+                        <th>Scenario</th>
+                        <th>Failed At</th>
+                        <th>Error</th>
+                        <th>Action</th>
+                    </tr>
+                    <tr>
+                        <td>TS-E2E-087</td>
+                        <td>Premium Calculation TX Auto</td>
+                        <td>11:23 AM</td>
+                        <td>API Timeout - BASE Rating Service</td>
+                        <td><button style="padding: 5px 15px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">Log Defect</button></td>
+                    </tr>
+                    <tr>
+                        <td>TS-E2E-142</td>
+                        <td>Forms Generation PICS</td>
+                        <td>10:45 AM</td>
+                        <td>Form Template Not Found - Version Mismatch</td>
+                        <td><button style="padding: 5px 15px; background: #ffc107; color: #333; border: none; border-radius: 5px; cursor: pointer;">Contact DevOps</button></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- TRACEABILITY MATRIX -->
+        <div id="traceability" class="dashboard">
+            <h2 style="color: #003366; margin-bottom: 20px;">End-to-End Traceability Matrix</h2>
+            
+            <div class="traceability-flow">
+                <div class="flow-item">
+                    <div style="font-size: 2em; margin-bottom: 10px;">📋</div>
+                    <strong>Requirements</strong><br>
+                    842 Total<br>
+                    798 Traced (95%)
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-item">
+                    <div style="font-size: 2em; margin-bottom: 10px;">🧪</div>
+                    <strong>Test Scenarios</strong><br>
+                    1,247 Total<br>
+                    1,185 Automated (95%)
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-item">
+                    <div style="font-size: 2em; margin-bottom: 10px;">✓</div>
+                    <strong>Execution</strong><br>
+                    98,456 Runs<br>
+                    94,238 Pass (96%)
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-item">
+                    <div style="font-size: 2em; margin-bottom: 10px;">🐛</div>
+                    <strong>Defects</strong><br>
+                    182 Found<br>
+                    165 Resolved (91%)
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-item">
+                    <div style="font-size: 2em; margin-bottom: 10px;">🚀</div>
+                    <strong>Production</strong><br>
+                    24 Releases<br>
+                    0 MIs (ZMI)
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h3>Requirements to Test Coverage</h3>
+                <table>
+                    <tr>
+                        <th>Requirement ID</th>
+                        <th>Business Requirement</th>
+                        <th>Portfolio</th>
+                        <th>Test Scenarios</th>
+                        <th>Automation</th>
+                        <th>Last Execution</th>
+                        <th>Status</th>
+                    </tr>
+                    <tr>
+                        <td>REQ-PM-001</td>
+                        <td>WI Dwelling Quote-to-Bind E2E</td>
+                        <td>Policy Mod</td>
+                        <td>12 scenarios</td>
+                        <td><span class="badge badge-green">10/12 (83%)</span></td>
+                        <td>Today 9:15 AM</td>
+                        <td><span class="badge badge-green">PASS</span></td>
+                    </tr>
+                    <tr>
+                        <td>REQ-SS-003</td>
+                        <td>BASE Billing Multi-Portfolio Regression</td>
+                        <td>Shared Solutions</td>
+                        <td>15 scenarios</td>
+                        <td><span class="badge badge-green">12/15 (80%)</span></td>
+                        <td>Today 10:22 AM</td>
+                        <td><span class="badge badge-yellow">IN PROGRESS</span></td>
+                    </tr>
+                    <tr>
+                        <td>REQ-CL-007</td>
+                        <td>FNOL Digital Channel to Settlement</td>
+                        <td>Claims</td>
+                        <td>10 scenarios</td>
+                        <td><span class="badge badge-green">9/10 (90%)</span></td>
+                        <td>Yesterday 3:45 PM</td>
+                        <td><span class="badge badge-green">PASS</span></td>
+                    </tr>
+                    <tr>
+                        <td>REQ-DG-012</td>
+                        <td>Mobile App Omnichannel Journey</td>
+                        <td>Digital</td>
+                        <td>8 scenarios</td>
+                        <td><span class="badge badge-green">8/8 (100%)</span></td>
+                        <td>Today 11:05 AM</td>
+                        <td><span class="badge badge-green">PASS</span></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="chart-section">
+                <h3>Integration Point Traceability</h3>
+                <div class="status-grid">
+                    <div class="status-item status-green">
+                        <strong>PolicyCenter → BASE</strong><br>
+                        5 Scenarios | 100% Automated<br>
+                        Last Validated: 10 min ago<br>
+                        Risk: <span class="badge badge-red">CRITICAL</span>
+                    </div>
+                    <div class="status-item status-green">
+                        <strong>PolicyCenter → PICS</strong><br>
+                        8 Scenarios | 88% Automated<br>
+                        Last Validated: 15 min ago<br>
+                        Risk: <span class="badge badge-red">CRITICAL</span>
+                    </div>
+                    <div class="status-item status-green">
+                        <strong>ClaimCenter → FinPAL</strong><br>
+                        4 Scenarios | 100% Automated<br>
+                        Last Validated: 20 min ago<br>
+                        Risk: <span class="badge badge-red">CRITICAL</span>
+                    </div>
+                    <div class="status-item status-green">
+                        <strong>BASE → Data Warehouse</strong><br>
+                        3 Scenarios | 67% Automated<br>
+                        Last Validated: 1 hour ago<br>
+                        Risk: <span class="badge badge-yellow">HIGH</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert-box alert-info">
+                <div style="font-size: 2em;">📊</div>
+                <div>
+                    <strong>Traceability Health:</strong> 95% requirements traced to tests. 44 requirements without test coverage flagged for review. AI-powered traceability suggestions generated 23 new test scenario recommendations this week.
+                </div>
+            </div>
+        </div>
+
+        <!-- PRODUCTION INTELLIGENCE -->
+        <div id="production" class="dashboard">
+            <h2 style="color: #003366; margin-bottom: 20px;">Production Defect Intelligence & Monitoring</h2>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Production Incidents (30 Days)</div>
+                    <div class="metric-value good">3</div>
+                    <div class="metric-trend">▼ -70% vs Prior Month (10)</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Integration-Related MIs</div>
+                    <div class="metric-value good">0</div>
+                    <div class="metric-trend">✓ Zero Major Incidents Achieved</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Defect Escape Rate</div>
+                    <div class="metric-value good">1.8%</div>
+                    <div class="metric-trend">▼ Target: <2% | Industry: 3-5%</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Avg Time to Test Creation</div>
+                    <div class="metric-value good">18hrs</div>
+                    <div class="metric-trend">▼ From production incident to replication test</div>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h3>Production Defect Patterns (Last 90 Days)</h3>
+                <div class="defect-pattern-chart">
+                    <div class="pattern-item">
+                        <div class="pattern-title">Integration Hotspots</div>
+                        <div class="pattern-count">8</div>
+                        <div>PolicyCenter → BASE failures<br>
+                        <span class="badge badge-yellow">Action: Increased E2E Coverage</span></div>
+                    </div>
+                    <div class="pattern-item">
+                        <div class="pattern-title">State-Specific Issues</div>
+                        <div class="pattern-count">5</div>
+                        <div>Wisconsin rating calculations<br>
+                        <span class="badge badge-yellow">Action: Enhanced State Testing</span></div>
+                    </div>
+                    <div class="pattern-item">
+                        <div class="pattern-title">Configuration Drift</div>
+                        <div class="pattern-count">4</div>
+                        <div>Production config differences<br>
+                        <span class="badge badge-yellow">Action: Dependency Validation</span></div>
+                    </div>
+                    <div class="pattern-item">
+                        <div class="pattern-title">Data Quality Issues</div>
+                        <div class="pattern-count">3</div>
+                        <div>Cross-system data mismatch<br>
+                        <span class="badge badge-yellow">Action: Data Validation Tests</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h3>Defect Escape Analysis</h3>
+                <table>
+                    <tr>
+                        <th>Escape Category</th>
+                        <th>Frequency</th>
+                        <th>Impact</th>
+                        <th>Prevention Strategy</th>
+                        <th>Status</th>
+                    </tr>
+                    <tr>
+                        <td>Test Coverage Gap</td>
+                        <td>35%</td>
+                        <td><span class="badge badge-red">HIGH</span></td>
+                        <td>Expand scenarios based on production usage</td>
+                        <td><span class="badge badge-green">In Progress</span></td>
+                    </tr>
+                    <tr>
+                        <td>Test Data Limitation</td>
+                        <td>22%</td>
+                        <td><span class="badge badge-yellow">MEDIUM</span></td>
+                        <td>Production-like data generation</td>
+                        <td><span class="badge badge-green">Implemented</span></td>
+                    </tr>
+                    <tr>
+                        <td>Environment Difference</td>
+                        <td>18%</td>
+                        <td><span class="badge badge-red">HIGH</span></td>
+                        <td>Enhanced dependency management</td>
+                        <td><span class="badge badge-yellow">Ongoing</span></td>
+                    </tr>
+                    <tr>
+                        <td>Integration Complexity</td>
+                        <td>8%</td>
+                        <td><span class="badge badge-red">CRITICAL</span></td>
+                        <td>Expand E2E multi-system scenarios</td>
+                        <td><span class="badge badge-green">Active</span></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="chart-section">
+                <h3>Predictive Quality Intelligence</h3>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Production Incident Risk Score</div>
+                        <div class="metric-value good">23</div>
+                        <div class="metric-trend">LOW RISK | Threshold: <30</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Release Delay Probability</div>
+                        <div class="metric-value good">12%</div>
+                        <div class="metric-trend">ON TRACK | Acceptable: <20%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Defect-Prone Areas Identified</div>
+                        <div class="metric-value warning">4</div>
+                        <div class="metric-trend">Enhanced testing assigned</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">AI Model Prediction Accuracy</div>
+                        <div class="metric-value good">87%</div>
+                        <div class="metric-trend">▲ Target: >80% precision</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert-box alert-info">
+                <div style="font-size: 2em;">🤖</div>
+                <div>
+                    <strong>AI Insight:</strong> Predictive models indicate LOW risk for next release. Analysis of last 3 production incidents generated 12 new test scenarios automatically added to regression suite. Zero Major Incidents status maintained for 4 consecutive months.
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Update timestamp
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
+
+        // Dashboard switching
+        function showDashboard(dashboardId) {
+            // Hide all dashboards
+            const dashboards = document.querySelectorAll('.dashboard');
+            dashboards.forEach(d => d.classList.remove('active'));
+            
+            // Remove active from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            
+            // Show selected dashboard
+            document.getElementById(dashboardId).classList.add('active');
+            
+            // Activate selected tab
+            event.target.classList.add('active');
+        }
+
+        // Simulate real-time updates
+        setInterval(() => {
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
+        }, 30000); // Update every 30 seconds
+    </script>
+</body>
+</html>
