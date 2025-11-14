@@ -7,7 +7,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  background: linear-gradient(to bottom right, #f0f6ff, #e5e7ff);
+  background: #f6f8fb;
 }
 
 .dashboard-mode {

@@ -5,6 +5,8 @@ import './index.css';
 import './App.css';
 import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps';
 import { geoCentroid } from 'd3-geo';
+import TestDashboardWrapper from './apps/test-dashboard/TestDashboardWrapper.jsx';
+import LandingPageSR from './apps/state-rollout/LandingPage.jsx';
 
 const InsuranceAnalyticsPlatform = () => {
   const [fileUploaded, setFileUploaded] = useState(false);
@@ -24,6 +26,26 @@ const InsuranceAnalyticsPlatform = () => {
   
   // NEW: State to track which year's quarters are visible
   const [selectedYear, setSelectedYear] = useState(null);
+  const [appMode, setAppMode] = useState('home');
+
+  const navigate = (mode) => {
+    setAppMode(mode);
+    if (mode === 'home') window.location.hash = '#/home';
+    else if (mode === 'test') window.location.hash = '#/test-dashboard';
+    else if (mode === 'state-rollout') window.location.hash = '#/state-rollout';
+  };
+
+  useEffect(() => {
+    const syncFromHash = () => {
+      const h = window.location.hash;
+      if (h.includes('test-dashboard')) setAppMode('test');
+      else if (h.includes('state-rollout')) setAppMode('state-rollout');
+      else setAppMode('home');
+    };
+    syncFromHash();
+    window.addEventListener('hashchange', syncFromHash);
+    return () => window.removeEventListener('hashchange', syncFromHash);
+  }, []);
 
   // Cache US states topology to avoid refetches and remount flicker
   const US_TOPO_URL = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
@@ -404,8 +426,47 @@ const InsuranceAnalyticsPlatform = () => {
     }));
   };
 
+  const HomePage = () => (
+    <div className="min-h-screen bg-usaa-light flex items-center justify-center p-6">
+      <div className="max-w-5xl w-full">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-usaa-navy mb-2">VAM InsureAnalytics - USAA</h1>
+          <p className="text-gray-600">Choose an app to continue</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl shadow p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <BarChart3 className="w-6 h-6 text-usaa-blue" />
+              <h2 className="text-xl font-semibold text-usaa-navy">Test Execution Dashboard</h2>
+            </div>
+            <p className="text-gray-600 mb-4">View test outcomes, code coverage, and sprint analytics.</p>
+            <button
+              onClick={() => navigate('test')}
+              className="px-4 py-2 bg-usaa-blue text-white rounded hover:bg-usaa-navy-700"
+            >
+              Open
+            </button>
+          </div>
+          <div className="bg-white rounded-xl shadow p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <FileSpreadsheet className="w-6 h-6 text-usaa-blue" />
+              <h2 className="text-xl font-semibold text-usaa-navy">State Rollout Analysis</h2>
+            </div>
+            <p className="text-gray-600 mb-4">Upload filing data to analyze state metrics and insights.</p>
+            <button
+              onClick={() => navigate('state-rollout')}
+              className="px-4 py-2 bg-usaa-blue text-white rounded hover:bg-usaa-navy-700"
+            >
+              Start
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const LandingPage = () => (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-blue-900 to-purple-900 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-usaa-navy via-usaa-blue to-usaa-navy flex items-center justify-center p-6">
       <div className="max-w-4xl w-full">
         <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-500 rounded-full mb-6">
@@ -414,10 +475,10 @@ const InsuranceAnalyticsPlatform = () => {
           <h1 className="text-5xl font-bold text-white mb-4">
             Insurelytics
           </h1>
-          <p className="text-xl text-blue-200 mb-2">
+          <p className="text-xl text-white/80 mb-2">
             Upload your Excel file to visualize state filing jurisdiction analysis
           </p>
-          <p className="text-sm text-blue-300">
+          <p className="text-sm text-white/70">
             Supports .xlsx and .xls formats
           </p>
         </div>
@@ -432,7 +493,7 @@ const InsuranceAnalyticsPlatform = () => {
               id="file-upload"
             />
             <label htmlFor="file-upload" className="cursor-pointer">
-              <Upload className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+              <Upload className="w-16 h-16 text-usaa-blue mx-auto mb-4" />
               <p className="text-xl font-semibold text-gray-700 mb-2">
                 Click to upload or drag and drop
               </p>
@@ -443,18 +504,18 @@ const InsuranceAnalyticsPlatform = () => {
           </div>
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-blue-50 rounded-lg p-4 text-center">
-              <TrendingUp className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+            <div className="bg-usaa-light rounded-lg p-4 text-center">
+              <TrendingUp className="w-8 h-8 text-usaa-blue mx-auto mb-2" />
               <p className="text-sm font-semibold text-gray-700">Interactive Map</p>
               <p className="text-xs text-gray-600">Hover over states for details</p>
             </div>
-            <div className="bg-purple-50 rounded-lg p-4 text-center">
+            <div className="bg-usaa-light rounded-lg p-4 text-center">
               <Car className="w-8 h-8 text-purple-600 mx-auto mb-2" />
               <p className="text-sm font-semibold text-gray-700">LOB Timeline</p>
               <p className="text-xs text-gray-600">Track rollouts by quarter</p>
             </div>
-            <div className="bg-indigo-50 rounded-lg p-4 text-center">
-              <AlertCircle className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
+            <div className="bg-usaa-light rounded-lg p-4 text-center">
+              <AlertCircle className="w-8 h-8 text-usaa-blue mx-auto mb-2" />
               <p className="text-sm font-semibold text-gray-700">Key Insights</p>
               <p className="text-xs text-gray-600">Automated KPI analysis</p>
             </div>
@@ -651,7 +712,7 @@ const InsuranceAnalyticsPlatform = () => {
                           ? 'bg-gray-300 cursor-not-allowed' 
                           : selectedYear === year
                             ? 'bg-yellow-500 ring-2 ring-yellow-300'
-                            : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+                            : 'bg-usaa-blue hover:bg-usaa-navy-700 cursor-pointer'
                       }`}
                       title={totalStatesInYear === 0 ? 'No states' : 'Click to view quarters'}
                     ></button>
@@ -1037,7 +1098,7 @@ const InsuranceAnalyticsPlatform = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {Object.entries(regulationData).map(([type, count]) => (
                 <div key={type} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 text-center">
-                  <div className="text-xl font-bold text-blue-600">{count}</div>
+                  <div className="text-xl font-bold text-usaa-blue">{count}</div>
                   <div className="text-xs font-medium text-gray-700 mt-1 truncate" title={type}>{type}</div>
                   <div className="text-xs text-gray-500">{((count / statesArray.length) * 100).toFixed(0)}%</div>
                 </div>
@@ -1345,11 +1406,18 @@ const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, ho
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex">
         {/* Left Navigation Pane */}
-        <div className="w-48 bg-gray-900 text-white p-4 flex flex-col">
+        <div className="w-48 bg-usaa-navy text-white p-4 flex flex-col">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-1">Dashboard</h2>
             <p className="text-xs text-gray-400 truncate" title={fileName}>{fileName}</p>
           </div>
+
+          <button
+            onClick={() => navigate('home')}
+            className="w-full px-3 py-2 mb-3 bg-usaa-blue hover:bg-usaa-navy-700 rounded-lg font-medium text-sm"
+          >
+            Back to Home
+          </button>
 
           <nav className="flex-1">
             <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">Navigation</h3>
@@ -1362,7 +1430,7 @@ const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, ho
                 setSelectedYear(null);
               }}
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 transition-colors ${
-                selectedLOB === 'overview' ? 'bg-blue-600' : 'hover:bg-gray-800'
+                selectedLOB === 'overview' ? 'bg-usaa-blue' : 'hover:bg-usaa-navy-700'
               }`}
             >
               <BarChart3 className="w-4 h-4" />
@@ -1379,7 +1447,7 @@ const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, ho
                 setSelectedYear(null);
               }}
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 transition-colors ${
-                selectedLOB === 'auto' ? 'bg-blue-600' : 'hover:bg-gray-800'
+                selectedLOB === 'auto' ? 'bg-usaa-blue' : 'hover:bg-usaa-navy-700'
               }`}
             >
               <Car className="w-4 h-4" />
@@ -1394,7 +1462,7 @@ const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, ho
                 setSelectedYear(null);
               }}
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 transition-colors ${
-                selectedLOB === 'home' ? 'bg-blue-600' : 'hover:bg-gray-800'
+                selectedLOB === 'home' ? 'bg-usaa-blue' : 'hover:bg-usaa-navy-700'
               }`}
             >
               <Home className="w-4 h-4" />
@@ -1409,7 +1477,7 @@ const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, ho
                 setSelectedYear(null);
               }}
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 transition-colors ${
-                selectedLOB === 'umbrella' ? 'bg-blue-600' : 'hover:bg-gray-800'
+                selectedLOB === 'umbrella' ? 'bg-usaa-blue' : 'hover:bg-usaa-navy-700'
               }`}
             >
               <Umbrella className="w-4 h-4" />
@@ -1451,7 +1519,21 @@ const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, ho
     }
   }, [fileUploaded]);
 
-  return fileUploaded ? <Dashboard /> : <LandingPage />;
+  if (appMode === 'home') return <HomePage />;
+  if (appMode === 'test') return <TestDashboardWrapper onBack={() => navigate('home')} />;
+  if (!fileUploaded) {
+    return (
+      <div className="p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-end mb-6">
+            <button onClick={() => navigate('home')} className="px-3 py-2 bg-usaa-blue text-white rounded hover:bg-usaa-navy-700">Back to Home</button>
+          </div>
+        </div>
+        <LandingPageSR onUpload={handleFileUpload} />
+      </div>
+    );
+  }
+  return <Dashboard />;
 };
 
 export default InsuranceAnalyticsPlatform;
