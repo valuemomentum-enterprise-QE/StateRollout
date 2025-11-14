@@ -6,6 +6,7 @@ import './App.css';
 import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps';
 import { geoCentroid } from 'd3-geo';
 import TestDashboardWrapper from './apps/test-dashboard/TestDashboardWrapper.jsx';
+import QualityIntelligenceWrapper from './apps/quality-intelligence/QualityIntelligenceWrapper.jsx';
 import LandingPageSR from './apps/state-rollout/LandingPage.jsx';
 
 const InsuranceAnalyticsPlatform = () => {
@@ -33,6 +34,7 @@ const InsuranceAnalyticsPlatform = () => {
     if (mode === 'home') window.location.hash = '#/home';
     else if (mode === 'test') window.location.hash = '#/test-dashboard';
     else if (mode === 'state-rollout') window.location.hash = '#/state-rollout';
+    else if (mode === 'quality') window.location.hash = '#/quality-intelligence';
   };
 
   useEffect(() => {
@@ -40,6 +42,7 @@ const InsuranceAnalyticsPlatform = () => {
       const h = window.location.hash;
       if (h.includes('test-dashboard')) setAppMode('test');
       else if (h.includes('state-rollout')) setAppMode('state-rollout');
+      else if (h.includes('quality-intelligence')) setAppMode('quality');
       else setAppMode('home');
     };
     syncFromHash();
@@ -433,7 +436,7 @@ const InsuranceAnalyticsPlatform = () => {
           <h1 className="text-4xl font-bold text-usaa-navy mb-2">VAM InsureAnalytics - USAA</h1>
           <p className="text-gray-600">Choose an app to continue</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white rounded-xl shadow p-6">
             <div className="flex items-center gap-3 mb-4">
               <BarChart3 className="w-6 h-6 text-usaa-blue" />
@@ -458,6 +461,19 @@ const InsuranceAnalyticsPlatform = () => {
               className="px-4 py-2 bg-usaa-blue text-white rounded hover:bg-usaa-navy-700"
             >
               Start
+            </button>
+          </div>
+          <div className="bg-white rounded-xl shadow p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <TrendingUp className="w-6 h-6 text-usaa-blue" />
+              <h2 className="text-xl font-semibold text-usaa-navy">USAA P&C Quality Intelligence</h2>
+            </div>
+            <p className="text-gray-600 mb-4">Open interactive E2E Quality Intelligence dashboards.</p>
+            <button
+              onClick={() => navigate('quality')}
+              className="px-4 py-2 bg-usaa-blue text-white rounded hover:bg-usaa-navy-700"
+            >
+              Open
             </button>
           </div>
         </div>
@@ -1521,6 +1537,7 @@ const USMap = React.memo(({ usTopo, stateAbbreviations, selectedYearStateSet, ho
 
   if (appMode === 'home') return <HomePage />;
   if (appMode === 'test') return <TestDashboardWrapper onBack={() => navigate('home')} />;
+  if (appMode === 'quality') return <QualityIntelligenceWrapper onBack={() => navigate('home')} />;
   if (!fileUploaded) {
     return (
       <div className="p-6">
